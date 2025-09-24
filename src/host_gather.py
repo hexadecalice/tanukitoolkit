@@ -64,10 +64,10 @@ def device_scan():
             manu_result = mac_lookup.lookup(received.hwsrc)
         except:
             manu_result = "Couldn't determine manufacturer"
-        #Try to resolve host namcmde from DNS server
+        #Try to resolve host name from DNS server
         try:
-            host_name = socket.gethostbyaddr(received.psrc)
-        except:
+            host_name = socket.gethostbyaddr(received.psrc)[0]
+        except socket.herror:
             host_name = "Undetermined."
         print("MAC Lookup Result: %s " % manu_result)
         print("Host name: %s \n" % str(host_name))
