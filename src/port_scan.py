@@ -12,7 +12,7 @@ portlist = {
     23: 'Telnet',
     25: 'SMTP',
     53: 'DNS',
-    67: 'DHCP/Server)',
+    67: 'DHCP/Server',
     68: 'DHCP/Client',
     80: 'HTTP',
     110: 'POP3',
@@ -31,7 +31,7 @@ def scanPort(ip, portlist):
 
         #Set conditionals for checking the response packet
         hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
-        hasRst = sendSyn and sendSyn.haslayer('TCP') and "R" in sendSyn['TCP'].flags
+        hasRst = sendSyn and sendSyn.haslayer('TCP') and ("R" in sendSyn['TCP'].flags or sendSyn['TCP'].flags == 'A')
 
         if hasSynAck:
             #Send RST tcp response with correct sequence and acknowledgement numbers to close the connection
