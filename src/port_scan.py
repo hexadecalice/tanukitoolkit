@@ -1,7 +1,7 @@
 from scapy.all import IP, TCP
 import scapy.all as scapy
 
-testip = "8.8.8.8"
+testip = "172.20.10.1"
 portlist = [20, 80, 53]
 def scanPort(ip, portlist):
     for port in portlist:
@@ -11,7 +11,7 @@ def scanPort(ip, portlist):
 
         #Set conditionals for checking the response packet
         hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
-        hasRst = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'R'
+        hasRst = sendSyn and sendSyn.haslayer('TCP') and "R" in sendSyn['TCP'].flags
 
         if hasSynAck:
             #Send RST tcp response with correct sequence and acknowledgement numbers to close the connection
@@ -25,4 +25,5 @@ def scanPort(ip, portlist):
             print("Port %s likely filtered by firewall" % synReq['TCP'].dport)
         else:
             print("Cry I guess.")
+            sendSyn.show()
 scanPort(testip,portlist)
