@@ -1,8 +1,28 @@
 from scapy.all import IP, TCP
 import scapy.all as scapy
 
-testip = "172.20.10.1"
-portlist = [20, 80, 53]
+#Change testip to the ip you want to scan the ports of
+#Pro-tip: You can use host_gather.py to find IP's on your network to run this tool on
+testip = "8.8.8.8"
+
+portlist = {
+    20: 'FTP/Data',
+    21: 'FTP/Control',
+    22: 'SSH',
+    23: 'Telnet',
+    25: 'SMTP',
+    53: 'DNS',
+    67: 'DHCP/Server)',
+    68: 'DHCP/Client',
+    80: 'HTTP',
+    110: 'POP3',
+    123: 'NTP',
+    143: 'IMAP',
+    443: 'HTTPS',
+    445: 'SMB',
+    3306: 'MySQL',
+    3389: 'RDP'
+}
 def scanPort(ip, portlist):
     for port in portlist:
         #Craft initial SYN request packet, then send it and listen for one packet
@@ -18,7 +38,7 @@ def scanPort(ip, portlist):
             #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
             rstPak = IP(dst='8.8.8.8')/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
             scapy.send(rstPak, verbose=0)
-            print("Port open on port %s" % synReq['TCP'].dport)
+            print("Port open on port %s (%s)" % (port, portlist[port]))
         elif hasRst:
             print("Port closed on port %s " % synReq['TCP'].dport)
         elif not sendSyn:
