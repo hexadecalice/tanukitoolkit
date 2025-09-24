@@ -37,11 +37,12 @@ def format_host(host_ip, host_subnet):
     return network_interface
 
 
-def device_scan():
+def device_scan(verbose=True):
     local_host = get_ip()
     local_subnetmask = get_subnetmask()
     cidr_prefix = format_host(local_host, local_subnetmask)
-    print("Scanning on network segment: " + str(cidr_prefix) + "...\n")
+    if verbose:
+        print("Scanning on network segment: " + str(cidr_prefix) + "...\n")
 
     #Create an ARP request with a broadcast ethernet envelope
     arp_request = scapy.ARP(pdst=str(cidr_prefix))
@@ -54,10 +55,11 @@ def device_scan():
     response_list = []
 
     for sent, received in answered:
-        if received.psrc == router_ip:
+        if received.psrc == router_ip and verbose:
             print("--This Device Is The Router--")
-        print("IP Address: %s" % received.psrc)
-        print("Mac Address: %s " % received.hwsrc)
+        if verbose:
+            print("IP Address: %s" % received.psrc)
+            print("Mac Address: %s " % received.hwsrc)
         #Use mac-lookup to determine manufacturer
         mac_lookup = MacLookup()
         try:
@@ -69,8 +71,9 @@ def device_scan():
             host_name = socket.gethostbyaddr(received.psrc)[0]
         except socket.herror:
             host_name = "Undetermined."
-        print("MAC Lookup Result: %s " % manu_result)
-        print("Host name: %s \n" % str(host_name))
+        if verbose:
+            print("MAC Lookup Result: %s " % manu_result)
+            print("Host name: %s \n" % str(host_name))
         response_info = {'ip': received.psrc, 'mac': received.hwsrc, 'manufacturer': manu_result, 'host name': host_name}
         response_list.append(response_info)
     return response_list
