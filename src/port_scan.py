@@ -18,9 +18,6 @@ def scanPort(ip, portlist):
             #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
             rstPak = IP(dst='8.8.8.8')/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['ack'], ack=sendSyn['TCP'].seq+1, flags="R")
             scapy.send(rstPak, verbose=0)
-            synReq.show()
-            sendSyn.show()
-            rstPak.show()
             print("Port open on port %s" % synReq['TCP'].dport)
         elif hasRst:
             print("Port closed on port %s " % synReq['TCP'].dport)
