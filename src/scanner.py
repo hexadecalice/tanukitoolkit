@@ -3,6 +3,15 @@ from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP, TCP
 from scapy.layers.tls.handshake import TLSClientHello
 
+"""This was the first tool written in the toolkit, and it shows
+A lot of this comes from a fundamental misunderstanding of how packet sniffing works
+The original intention was to be able to see which websites hosts on a network were accessing
+If you could find a way to set up this program on a compromised switch port or hub it would work as intended
+But as it stands, this is only going to be able to sniff traffic coming from your computer
+
+I've occasionally found this useful in debugging the other tools, but honestly
+This entire program will probably be rewritten or trashed entirely in the near future
+"""
 
 def process_packet(packet):
     #check if the packet has a DNS layer
