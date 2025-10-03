@@ -53,7 +53,7 @@ def device_scan(verbose=True):
     answered, unanswered = scapy.srp(request_packet, timeout=10, verbose=False)
 
     response_list = []
-
+    mac_lookup = MacLookup()
     for sent, received in answered:
         if received.psrc == router_ip and verbose:
             print("--This Device Is The Router--")
@@ -61,7 +61,6 @@ def device_scan(verbose=True):
             print("IP Address: %s" % received.psrc)
             print("Mac Address: %s " % received.hwsrc)
         #Use mac-lookup to determine manufacturer
-        mac_lookup = MacLookup()
         try:
             manu_result = mac_lookup.lookup(received.hwsrc)
         except:
