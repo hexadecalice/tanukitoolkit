@@ -37,7 +37,7 @@ def scanPort(ip, portlist=common_ports):
         if hasSynAck:
             #Send RST tcp response with correct sequence and acknowledgement numbers to close the connection
             #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
-            rstPak = IP(dst=testip)/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
+            rstPak = IP(dst=ip)/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
             scapy.send(rstPak, verbose=0)
             print("Port open on port %s (%s)" % (port, portlist[port]))
         elif hasRst:
