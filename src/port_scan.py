@@ -28,7 +28,7 @@ def scanPort(ip, portlist=common_ports):
     for port in portlist:
         #Craft initial SYN request packet, then send it and listen for one packet
         synReq = IP(dst=ip)/TCP(dport=port, flags="S")
-        sendSyn = scapy.sr1(synReq, verbose=0, timeout=5)
+        sendSyn = scapy.sr1(synReq, verbose=0, timeout=2)
 
         #Set conditionals for checking the response packet
         hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
