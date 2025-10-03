@@ -1,11 +1,11 @@
 from scapy.all import IP, TCP
 import scapy.all as scapy
-
+import re
 #Change testip to the ip you want to scan the ports of
 #Pro-tip: You can use host_gather.py to find IP's on your network to run this tool on
 testip = "8.8.8.8"
 
-portlist = {
+common_ports = {
     20: 'FTP/Data',
     21: 'FTP/Control',
     22: 'SSH',
@@ -23,7 +23,8 @@ portlist = {
     3306: 'MySQL',
     3389: 'RDP'
 }
-def scanPort(ip, portlist):
+
+def scanPort(ip, portlist=common_ports):
     for port in portlist:
         #Craft initial SYN request packet, then send it and listen for one packet
         synReq = IP(dst=ip)/TCP(dport=port, flags="S")
@@ -36,7 +37,7 @@ def scanPort(ip, portlist):
         if hasSynAck:
             #Send RST tcp response with correct sequence and acknowledgement numbers to close the connection
             #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
-            rstPak = IP(dst='8.8.8.8')/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
+            rstPak = IP(dst=testip)/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
             scapy.send(rstPak, verbose=0)
             print("Port open on port %s (%s)" % (port, portlist[port]))
         elif hasRst:
@@ -44,6 +45,24 @@ def scanPort(ip, portlist):
         elif not sendSyn:
             print("Port %s likely filtered by firewall" % synReq['TCP'].dport)
         else:
-            print("Cry I guess.")
+            print("Cry, I guess.")
             sendSyn.show()
-scanPort(testip,portlist)
+
+userPort = input("Enter port range formatted startport,endport\nAlternatively, leave this blank to scan common ports.\n> ")
+
+if userPort:
+    #Regex to pull out the numbers from the userInput
+    #This will still definitely break if you enter wonky input
+    formattedPort = re.search(r"(\d+),(\d+)", userPort)
+    startport = int(formattedPort.group(1))
+    endport = int(formattedPort.group(2))
+    userPortList = {}
+    #Populate a dictionary with the users ports, make sure the common usage ones are still labelled as such
+    for x in range(startport,endport+1):
+        if x in common_ports:
+            userPortList[x] = common_ports[x]
+        else:
+            userPortList[x] = "No Common Usage"
+    scanPort(testip, userPortList)
+else:
+    scanPort(testip)
