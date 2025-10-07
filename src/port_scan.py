@@ -3,7 +3,7 @@ import scapy.all as scapy
 import re
 #Change testip to the ip you want to scan the ports of
 #Pro-tip: You can use host_gather.py to find IP's on your network to run this tool on
-testip = "8.8.8.8"
+testip = "your.ip.goes.here"
 
 common_ports = {
     20: 'FTP/Data',
@@ -60,7 +60,7 @@ if userPort:
     #Populate a dictionary with the users ports, make sure the common usage ones are still labelled as such
     for x in range(startport,endport+1):
         if x in common_ports:
-            userPortList[x] = common_ports[x]
+            userPortList[x] = common_ports[x]d
         else:
             userPortList[x] = "No Common Usage"
     scanPort(testip, userPortList)
