@@ -41,4 +41,6 @@ Follow these instructions to get the toolkit running on your local machine.
 ---
 
 ## Usage
-```python [tool_name].py```
+```python port_scan.py -ip www.yourwebsite.com -p startport,endport -t maxthreads```
+If a port range is not included, the default are a list of commonly used ports
+If a maximum thread count is not included, the default is 50. 
