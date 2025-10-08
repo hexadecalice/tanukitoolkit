@@ -27,8 +27,7 @@ common_ports = {
      3306: 'MySQL',
      3389: 'RDP'
  }
-error_message ="""Sorry! I didn't quite catch that, make sure your port is formatted start,end with no spaces!\n
-Also ensure that the host is formatted properly as a www.website.com or IPv4 address!\n
+error_message ="""Sorry! I didn't quite understand.\nMake sure your port is formatted start,end with no spaces!\n
 Please restart the application."""
 
 def printResults(port, result):
@@ -86,7 +85,7 @@ async def main(host,ports,max_threads,):
             start_port = int(formatted_port.group(1))
             end_port = int(formatted_port.group(2))
             port_list = range(start_port, end_port+1)
-        except:
+        except(ValueError, AttributeError):
             print(error_message)
             exit(1)
 
@@ -110,9 +109,9 @@ async def main(host,ports,max_threads,):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-ip",type=str, help="Specifies the host for target. Either a website or IP address.")
-parser.add_argument("-p", type=str, help="Specifies the port range, written start,end")
-parser.add_argument("-t",type=int, help="Sets the maximum number of threads. Default is 50.")
+parser.add_argument("-ip", "--target-ip",type=str, help="Specifies the host for target. Either a website or IP address.")
+parser.add_argument("-p", "--port_range", type=str, help="Specifies the port range, written start,end")
+parser.add_argument("-t", "--thread_maximum",type=int, help="Sets the maximum number of threads. Default is 50.")
 parser.add_argument("-lh", "--local_hosts", help="Prints the IP addresses/Mac addresses of local devices", action="store_true")
 
 args = parser.parse_args()
@@ -126,14 +125,14 @@ if args.local_hosts:
         print("Host Name (Usually undetermined): %s\n" % host.get("host name"))
     exit(1)
 #Set arguments to variables to be used by the scanner
-if args.ip == None:
+if args.target_ip == None:
     parser.print_help()
     exit(1)
 else:
-    target_host = args.ip
+    target_host = args.target_ip
 
-if args.t and args.t != 50:
-    max_threads = args.t
+if args.thread_maximum:
+    max_threads = args.thread_maximum
 else:
     max_threads = 50
-asyncio.run(main(target_host,args.p,max_threads))
+asyncio.run(main(target_host,args.port_range,max_threads))
