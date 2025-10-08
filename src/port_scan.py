@@ -2,7 +2,6 @@ from scapy.all import IP, TCP
 import scapy.all as scapy
 import re
 import asyncio
-import time
 import concurrent.futures
 import argparse
 from host_gather import device_scan
@@ -87,19 +86,17 @@ async def main(host,ports,max_threads,):
             start_port = int(formatted_port.group(1))
             end_port = int(formatted_port.group(2))
             port_list = range(start_port, end_port+1)
-            #Give all instances of asynchronous function running on the given ports to our event loop handler
-            async_tasks = [async_scan_wrapper(thread_executor,target_host,port) for port in port_list]
-            #Execute them 'concurrently'
-            port_results = await asyncio.gather(*async_tasks)
         except:
             print(error_message)
             exit(1)
 
     #Scan common ports if no ports are provided
     else:
-        #Gives the event loop handler a similar list of tasks, just using the ports in common_ports
-        async_tasks = [async_scan_wrapper(thread_executor, target_host,port) for port in common_ports]
-        port_results = await asyncio.gather(*async_tasks)
+        port_list = common_ports
+    #Create a list of tasks to be run 'asynchronously'
+    #Then tell them to start running
+    async_tasks = [async_scan_wrapper(thread_executor, host,port) for port in port_list]
+    port_results = await asyncio.gather(*async_tasks)
     for port, result in port_results:
         printResults(port, result)
 
