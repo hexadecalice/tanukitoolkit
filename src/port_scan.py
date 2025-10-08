@@ -80,7 +80,7 @@ async def async_scan_wrapper(exec,host,port):
 async def main(host,ports,max_threads,):
     thread_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
 
-    if args.p:
+    if ports:
         #Regex to pull out the numbers from the flags input
         try:
             formatted_port = re.search(r"(\d+),(\d+)", ports)
