@@ -4,7 +4,7 @@ import re
 import asyncio
 import time
 import concurrent.futures
-
+import argparse
 
 #Change testip to the ip you want to scan the ports of
 #Pro-tip: You can use host_gather.py to find IP's on your network to run this tool on
@@ -27,6 +27,20 @@ common_ports = {
      3306: 'MySQL',
      3389: 'RDP'
  }
+error_message ="""Sorry! I didn't quite catch that, make sure your port is formatted start,end with no spaces!\n
+Also ensure that the host is formatted properly as a www.website.com or IPv4 address!\n
+Please restart the application."""
+
+def printResults(port, result):
+    if result == "Open":
+        print("Port %s is open. (Common Usage: %s)" % (port, common_ports.get(port, "Unknown")))
+    elif result == "Closed":
+        print("Port %s is closed." % port)
+    elif result == "Filtered":
+        print("Port %s is filtered." % port)
+    elif result == "Status Unknown":
+        print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
+
 
 def scanPort(ip, port):
     synReq = IP(dst=ip)/TCP(dport=port, flags="S")
@@ -61,63 +75,46 @@ async def async_scan_wrapper(exec,host,port):
 
 
 async def main():
-    testip = input("Please enter a valid website (www.something.com) or IPv4 address (8.8.8.8)\n> ")
-    userPort = input("Enter port range formatted startport,endport\nAlternatively, just press enter to scan common ports.\n> ")
-    max_threads = input("Please enter the maximum number of threads allowed for scanning, or leave this blank to use the default.(50)\n> ")
-    if max_threads and max_threads != 50:
-        try:
-            max_threads = int(max_threads)
-        except:
-            print("Invalid type, make sure you're entering whole numbers with no spaces.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-ip",type=str, help="Specifies the host for target. Either a website or IP address.")
+    parser.add_argument("-p", type=str, help="Specifies the port range, written start,end")
+    parser.add_argument("-t",type=int, help="Sets the maximum number of threads. Default is 50.")
+    args = parser.parse_args()
+
+    #Set arguments to variables to be used by the scanner
+    if args.ip == None:
+        parser.print_help()
+        exit(1)
+    else:
+        target_host = args.ip
+
+    if args.t and args.t != 50:
+        max_threads = args.t
     else:
         max_threads = 50
     thread_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
-    if userPort:
-        #Regex to pull out the numbers from the userInput
+    if args.p:
+        #Regex to pull out the numbers from the flags input
         try:
-            formattedPort = re.search(r"(\d+),(\d+)", userPort)
-            startport = int(formattedPort.group(1))
-            endport = int(formattedPort.group(2))
-
-            #Assign ports to asynchronous function and run them "concurrently"
-            port_list = range(startport, endport+1)
+            formatted_port = re.search(r"(\d+),(\d+)", args.p)
+            start_port = int(formatted_port.group(1))
+            end_port = int(formatted_port.group(2))
+            port_list = range(start_port, end_port+1)
             #Give all instances of asynchronous function running on the given ports to our event loop handler
-            async_tasks = [async_scan_wrapper(thread_executor,testip,port) for port in port_list]
+            async_tasks = [async_scan_wrapper(thread_executor,target_host,port) for port in port_list]
             #Execute them 'concurrently'
             port_results = await asyncio.gather(*async_tasks)
 
-            for port, result in port_results:
-                if result == "Open":
-                    print("Port %s is open. (Common Usage: %s)" % (port, common_ports.get(port, "Unknown")))
-                elif result == "Closed":
-                    print("Port %s is closed." % port)
-                elif result == "Filtered":
-                    print("Port %s is filtered." % port)
-                elif result == "Status Unknown":
-                    print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
 
         except:
-                print("Sorry! I didn't quite catch that, make sure your port is formatted start,end with no spaces!\nPlease restart the application.")
+            print(error_message)
 
     #Scan common ports if no ports are provided
     else:
         #Gives the event loop handler a similar list of tasks, just using the ports in common_ports
-        async_tasks = [async_scan_wrapper(thread_executor, testip,port) for port in common_ports]
+        async_tasks = [async_scan_wrapper(thread_executor, target_host,port) for port in common_ports]
         port_results = await asyncio.gather(*async_tasks)
-        for port, result in port_results:
-            if result == "Open":
-                print("Port %s is open. (Common Usage: %s)" % (port, common_ports.get(port, "Unknown")))
-            elif result == "Closed":
-                print("Port %s is closed." % port)
-            elif result == "Filtered":
-                print("Port %s is filtered." % port)
-            elif result == "Status Unknown":
-                print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
-
-
-#I know the above code (if/elif/elif) is really ugly and not DRY
-#I will fix this by making some function that can turn a port range into a list, and using it for both the common/user supplied portlist
-#I'm just very tired right now.
-
+    for port, result in port_results:
+        printResults(port, result)
 
 asyncio.run(main())
