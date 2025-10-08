@@ -96,7 +96,11 @@ async def main(host,ports,max_threads,):
     #Create a list of tasks to be run 'asynchronously'
     #Then tell them to start running
     async_tasks = [async_scan_wrapper(thread_executor, host,port) for port in port_list]
-    port_results = await asyncio.gather(*async_tasks)
+    try:
+        port_results = await asyncio.gather(*async_tasks)
+    except OSError:
+        print("OSError occured, most likely an IP/website typo.\nPlease check your target IP and try again.")
+        exit(1)
     for port, result in port_results:
         printResults(port, result)
 
