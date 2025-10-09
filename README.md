@@ -44,7 +44,7 @@ Follow these instructions to get the toolkit running on your local machine.
 ```python port_scan.py -ip www.yourwebsite.com -p startport,endport```  
 If a port range is not included, the default are a list of commonly used ports  
 If a maximum thread count is not included, the default is 50.  
-You can use ```-lh``` as a lone flag to use host_gather to find local devices on the network. 
+  You can use ```-lh``` as a lone flag to use host_gather to find local devices on the network. 
 For a list of all flags, use `python port_scan.py -h` 
 If you'd like to run ```host_gather.py``` as a standalone, just run ```python host_gather.py```  
  > **Troubleshooting Note ⚠️**
