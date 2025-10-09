@@ -70,8 +70,8 @@ def scanPort(ip, port, wait_time):
 
 
 #This is a wrapper function, that takes our blocking scapy function
-#And makes it asynchronous, using run_in_executor to tell asyncio that the entire function
-#Is in and of itself, something thats blocking, and assigns it to a threadpool executor
+#And makes it asynchronous, using run_in_executor to assign it to a threadpool
+#The threadpool handles the functions execution
 async def async_scan_wrapper(exec,host,port,wait_time):
     event_loop = asyncio.get_running_loop()
     port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time)
@@ -115,7 +115,7 @@ async def main(host,ports,max_threads,wait_time):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ip", "--target-ip",type=str, help="Specifies the host for target. Either a website or IP address.")
-parser.add_argument("-p", "--port_range", type=str, help="Specifies the port range, written start,end")
+parser.add_argument("-p", "--port_range", type=str, help="Specifies the port range, written start,end. The default is a list of commonly used ports.")
 parser.add_argument("-t", "--thread_maximum",type=int, help="Sets the maximum number of threads. Default is 50.")
 parser.add_argument("-lh", "--local_hosts", help="Prints the IP addresses/Mac addresses of local devices", action="store_true")
 parser.add_argument("-w", "--wait", type=float, help="Specifies the time a thread should wait for a port to respond in seconds. Default is 3.")
