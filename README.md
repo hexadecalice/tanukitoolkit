@@ -41,9 +41,15 @@ Follow these instructions to get the toolkit running on your local machine.
 ---
 
 ## Usage
-```python port_scan.py -ip www.yourwebsite.com -p startport,endport -t maxthreads```  
+```python port_scan.py -ip www.yourwebsite.com -p startport,endport```  
 If a port range is not included, the default are a list of commonly used ports  
 If a maximum thread count is not included, the default is 50.  
-You can also use ```-lh``` as a lone flag to use host_gather to find local devices on the network.  
-If you'd like to run ```host_gather.py``` as a standalone, just run ```python host_gather.py```
+You can use ```-lh``` as a lone flag to use host_gather to find local devices on the network. 
+For a list of all flags, use `python port_scan.py -h` 
+If you'd like to run ```host_gather.py``` as a standalone, just run ```python host_gather.py```  
+ > **Troubleshooting Note ⚠️**
+ > If you're encountering `OSError: Bad File Descriptor` or `OSError: Invalid Argument` frequently, try reducing the thread count.  
+ > This error occurs due to a race condition, caused by two internal scapy threads try to access the same resource. (I think) 
+ > To my knowledge, this is basically unfixable. But if you have any good solutions, please feel free to open an issue or pull request. 
+
 
