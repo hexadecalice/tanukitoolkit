@@ -41,8 +41,7 @@ def device_scan(verbose=True):
     local_host = get_ip()
     local_subnetmask = get_subnetmask()
     cidr_prefix = format_host(local_host, local_subnetmask)
-    if verbose:
-        print("Scanning on network segment: " + str(cidr_prefix) + "...\n")
+    print("Scanning on network segment: " + str(cidr_prefix) + "...\n")
 
     #Create an ARP request with a broadcast ethernet envelope
     arp_request = scapy.ARP(pdst=str(cidr_prefix))
@@ -50,7 +49,7 @@ def device_scan(verbose=True):
     #Layer the packets into something that can be sent on the network
     request_packet = ether_envelope / arp_request
 
-    answered, unanswered = scapy.srp(request_packet, timeout=10, verbose=False)
+    answered, unanswered = scapy.srp(request_packet, timeout=2, verbose=False)
 
     response_list = []
     mac_lookup = MacLookup()
@@ -76,8 +75,3 @@ def device_scan(verbose=True):
         response_info = {'ip': received.psrc, 'mac': received.hwsrc, 'manufacturer': manu_result, 'host name': host_name}
         response_list.append(response_info)
     return response_list
-
-
-
-
-scan_list = device_scan()
