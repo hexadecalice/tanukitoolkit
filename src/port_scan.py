@@ -71,7 +71,8 @@ def scanPort(ip, port, wait_time):
 
 #This is a wrapper function, that takes our blocking scapy function
 #And makes it asynchronous, using run_in_executor to assign it to a threadpool
-#The threadpool handles the functions execution
+#The threadpool handles the functions execution, and we tell asyncio that the threadpool task
+#Is to be awaited
 async def async_scan_wrapper(exec,host,port,wait_time):
     event_loop = asyncio.get_running_loop()
     port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time)
@@ -145,4 +146,5 @@ if args.wait:
     wait_time = args.wait
 else:
     wait_time = 3
+
 asyncio.run(main(target_host,args.port_range,max_threads,wait_time))
