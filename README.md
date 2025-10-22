@@ -32,7 +32,7 @@ The Tanuki Toolkit is a small, Python-based collection of tools for network reco
 
 This toolkit relies on a few key Python libraries. You can install them all using pip:
 
-    pip install scapy netifaces getmac mac-vendor-lookup
+    pip install -r requirements.txt
 
 ### 2. Administrator Privileges (CRITICAL!)
 
@@ -115,6 +115,18 @@ You **must** provide the target's IP (`-ip`) and their MAC address (`-tm`).
 The toolkit will try to find your router's MAC address automatically. If it fails, you can specify it manually with the `-rm` flag:
 
     python tanuki.py -arp -ip 192.168.1.10 -tm aa:bb:cc:dd:ee:ff -rm 11:22:33:44:55:66
+
+**Troubleshooting: Enabling IP Forwarding**
+
+If your target loses internet connection, it's because your machine is not forwarding their packets to the router. You must enable IP forwarding on your *attacking* machine.
+
+* **On Linux:**
+    `echo 1 > /proc/sys/net/ipv4/ip_forward`
+* **On macOS:**
+    `sudo sysctl -w net.inet.ip.forwarding=1`
+* **On Windows (Admin PowerShell):**
+    `Set-NetIPInterface -Forwarding Enabled`
+    *(You may also need to enable/start the "Routing and Remote Access" service)*
 
 ---
 
