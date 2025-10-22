@@ -4,11 +4,6 @@ import ipaddress
 import netifaces
 from mac_vendor_lookup import MacLookup
 
-
-#Use netifaces to determine the default gateway
-gateway = netifaces.gateways()
-router_ip = gateway['default'][netifaces.AF_INET][0]
-
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
@@ -32,16 +27,18 @@ def get_subnetmask():
     return None
 
 #Convert the determined IP/Subnet into a useable interface object that represents the network range
-def format_host(host_ip, host_subnet):
+def format_range(host_ip, host_subnet):
     network_interface = ipaddress.IPv4Interface(f"{host_ip}/{host_subnet}")
     return network_interface
 
 
-def device_scan(verbose=True):
+def device_scan(router_ip, verbose=True, arp_poison=False):
     local_host = get_ip()
     local_subnetmask = get_subnetmask()
-    cidr_prefix = format_host(local_host, local_subnetmask)
-    print("Scanning on network segment: " + str(cidr_prefix) + "...\n")
+    cidr_prefix = format_range(local_host, local_subnetmask)
+    print("\nScanning on network segment: " + str(cidr_prefix) + "...")
+    print("This may take a while")
+
 
     #Create an ARP request with a broadcast ethernet envelope
     arp_request = scapy.ARP(pdst=str(cidr_prefix))
@@ -49,13 +46,16 @@ def device_scan(verbose=True):
     #Layer the packets into something that can be sent on the network
     request_packet = ether_envelope / arp_request
 
-    answered, unanswered = scapy.srp(request_packet, timeout=2, verbose=False)
+    answered, unanswered = scapy.srp(request_packet, timeout=5, verbose=False)
 
     response_list = []
     mac_lookup = MacLookup()
     for sent, received in answered:
-        if received.psrc == router_ip and verbose:
-            print("--This Device Is The Router--")
+        if received.psrc == router_ip:
+            if verbose:
+                print("--This Device Is The Router--")
+            if arp_poison:
+                return received.hwsrc
         if verbose:
             print("IP Address: %s" % received.psrc)
             print("Mac Address: %s " % received.hwsrc)
