@@ -73,7 +73,7 @@ if args.arp_poison:
     if router_mac and isinstance(router_mac, str):
         try:
             #Pass our command line variables to arp_spoof and let it do its thing
-            print("Beginning ARP Poison to host " + target_host + "and router at " + router_ip)
+            print("Beginning ARP Poison to host " + target_host + " and router at " + router_ip)
             arp_spoof.start_arp_poison(target_host, target_mac, router_ip, my_mac, router_mac)
         except TypeError:
             print("Something went wrong, make sure you're formatting the MAC correctly")
