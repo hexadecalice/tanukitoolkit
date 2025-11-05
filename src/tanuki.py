@@ -3,6 +3,7 @@ import port_scan
 import host_gather
 import arp_spoof
 import scanner
+import time
 import netifaces
 from getmac import get_mac_address as gma
 import asyncio
@@ -30,7 +31,7 @@ args = parser.parse_args()
 #Run host_gather and print the results to the screen if this flag is selected
 if args.local_hosts:
 
-    local_host = host_gather.device_scan(router_ip,verbose=False)
+    local_host = host_gather.device_scan(router_ip, verbose=False)
     for host in local_host:
         print("IP Address: %s" % host.get("ip"))
         print("Mac Address: %s" % host.get("mac"))
@@ -69,13 +70,19 @@ if args.arp_poison:
     if args.router_mac:
         router_mac = args.router_mac
     else:
+        print("Attempting to determine router MAC...")
         router_mac = host_gather.device_scan(router_ip,verbose=False, arp_poison=True)
     if router_mac and isinstance(router_mac, str):
         try:
             #Pass our command line variables to arp_spoof and let it do its thing
             print("Beginning ARP Poison to host " + target_host + " and router at " + router_ip)
             arp_spoof.start_arp_poison(target_host, target_mac, router_ip, my_mac, router_mac)
+            while(1):
+                time.sleep(1)
         except TypeError:
             print("Something went wrong, make sure you're formatting the MAC correctly")
+        except KeyboardInterrupt:
+            print("Closing threads and ending ARP Poison...")
+
     else:
         print("Unable to determine router's mac, try entering it manually.")

