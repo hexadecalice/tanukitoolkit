@@ -140,9 +140,6 @@ When enabled, the toolkit will flood the target with "Blackhole" packets (using 
     # (Remember to use sudo/Admin!)
     python tanuki.py -arp -ip 192.168.1.10 -tm aa:bb:cc:dd:ee:ff -dos
 
-**Why use this?**
-Standard ARP spoofing often fails on modern devices because they fallback to **IPv6** when IPv4 traffic is interrupted. The Tanuki Toolkit handles this by automatically launching an IPv6 poisoning service alongside the ARP attack. 
-
 It specifically:
 1. **Suppresses Router Advertisements (RA):** Tells the target the IPv6 router no longer exists.
 2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a blackhole.
