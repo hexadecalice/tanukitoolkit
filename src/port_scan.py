@@ -73,16 +73,17 @@ def scanPort(ip, port, wait_time):
 #And makes it asynchronous, using run_in_executor to assign it to a threadpool
 #The threadpool handles the functions execution, and we tell asyncio that the threadpool task
 #Is to be awaited
-async def async_scan_wrapper(exec,host,port,wait_time):
-    event_loop = asyncio.get_running_loop()
-    port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time)
-    return port_result
+async def async_scan_wrapper(semaphore,exec,host,port,wait_time):
+    async with semaphore:
+        event_loop = asyncio.get_running_loop()
+        port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time)
+        return port_result
 
 
 
 async def main(host,ports,max_threads,wait_time):
     thread_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
-
+    thread_semaphore = asyncio.Semaphore(max_threads-(max_threads//2))
     if ports:
         #Regex to pull out the numbers from the flags input
         #There has to be a more graceful way to do this
@@ -100,7 +101,7 @@ async def main(host,ports,max_threads,wait_time):
         port_list = common_ports
     #Creates a list of tasks to be run 'asynchronously'
     #Then tell them to start running
-    async_tasks = [async_scan_wrapper(thread_executor,host,port,wait_time) for port in port_list]
+    async_tasks = [async_scan_wrapper(thread_semaphore, thread_executor,host,port,wait_time) for port in port_list]
     try:
         port_results = await asyncio.gather(*async_tasks)
     except OSError:

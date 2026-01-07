@@ -46,7 +46,7 @@ def device_scan(router_ip, verbose=True, arp_poison=False):
     #Layer the packets into something that can be sent on the network
     request_packet = ether_envelope / arp_request
 
-    answered, unanswered = scapy.srp(request_packet, timeout=5, verbose=False)
+    answered, unanswered = scapy.srp(request_packet, timeout=10, verbose=False)
 
     response_list = []
     mac_lookup = MacLookup()
