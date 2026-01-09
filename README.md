@@ -159,3 +159,4 @@ It specifically:
 | `-w` | `--wait` | Port scan timeout in seconds. (Default: 3) |
 | `-tm`| `--target_mac` | **Required for ARP.** The target's MAC address. |
 | `-rm`| `--router_mac` | **Optional for ARP.** Manually specify the router's MAC. |
+| `-dos`| `--dos_target` | **Optional for ARP.** Set ARP spoofed MAC to 00:00:00:00:00, cutting target's internet. |
