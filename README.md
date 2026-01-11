@@ -22,7 +22,7 @@ The Tanuki Toolkit is a small, Python-based collection of tools for network reco
 ### Features
 * 📡 **Local Host Discovery:** See all devices on your local network.
 * 🚪 **Port Scanner:** Check for open ports on a target host.
-* 🎭 **ARP Poisoning:** Launch a Man-in-the-Middle (MITM) attack to intercept traffic (for analysis).
+* 🎭 **ARP Poisoning:** Launch a Man-in-the-Middle attack to intercept traffic.
 
 ---
 
@@ -129,7 +129,22 @@ If your target loses internet connection, it's because your machine is not forwa
     *(You may also need to enable/start the "Routing and Remote Access" service)*
 
 ---
+### 4. Denial of Service / "Blackhole" Mode (`-dos`)
 
+If your goal is to disconnect a target from the internet entirely rather than just sniffing their traffic, you can use the `-dos` flag. 
+
+When enabled, the toolkit will flood the target with "Blackhole" packets (using a non-existent hardware address). This effectively cuts the target off from the gateway.
+
+**Command:**
+
+    # (Remember to use sudo/Admin!)
+    python tanuki.py -arp -ip 192.168.1.10 -tm aa:bb:cc:dd:ee:ff -dos
+
+It specifically:
+1. **Suppresses Router Advertisements (RA):** Tells the target the IPv6 router no longer exists.
+2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a blackhole.
+3. **Spoofs ARP table:** Overwrites target's ARP tables, changing the router's MAC to 00:00:00:00:00:00
+---
 ## All Commands (Quick Reference)
 
 | Flag | Long Flag | Description |
@@ -144,3 +159,4 @@ If your target loses internet connection, it's because your machine is not forwa
 | `-w` | `--wait` | Port scan timeout in seconds. (Default: 3) |
 | `-tm`| `--target_mac` | **Required for ARP.** The target's MAC address. |
 | `-rm`| `--router_mac` | **Optional for ARP.** Manually specify the router's MAC. |
+| `-dos`| `--dos_target` | **Optional for ARP.** Set ARP spoofed MAC to 00:00:00:00:00, cutting target's internet. |
