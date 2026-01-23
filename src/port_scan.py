@@ -39,15 +39,17 @@ def printResults(port, result):
         print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
 
 
-def scanPort(ip, port, wait_time):
+def scanPort(ip, port, wait_time, semaphore):
+    sendSyn = None
     synReq = IP(dst=ip)/TCP(dport=port, flags="S")
     #I think the race condition is happening internally in Scapys threads from the traceback it gives
     #And if thats the case then idk how to fix that, this has never caught one error
     #But I'm leaving it here just in case ¯\_(ツ)_/¯
-    try:
-        sendSyn = scapy.sr1(synReq, verbose=0, timeout=wait_time)
-    except OSError:
-        print("Thread: " + threading.current_thread() + " has failed, if this happens frequently, try reducing your max threads.")
+    with semaphore:
+        try:
+            sendSyn = scapy.sr1(synReq, verbose=0, timeout=wait_time)
+        except OSError:
+            print("Thread: " + threading.current_thread() + " has failed, if this happens frequently, try reducing your max threads.")
     #Set conditionals for checking the response packet
     hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
     hasRst = sendSyn and sendSyn.haslayer('TCP') and (sendSyn['TCP'].flags == 'RA')
@@ -56,8 +58,10 @@ def scanPort(ip, port, wait_time):
     if hasSynAck:
          #Send RST tcp response with correct sequence and acknowledgement numbers to close the connection
          #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
+
         rstPak = IP(dst=ip)/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
-        scapy.send(rstPak, verbose=0)
+        with semaphore:
+            scapy.send(rstPak, verbose=0)
         return (port, "Open")
     elif hasRst:
              return (port, "Closed")
@@ -74,16 +78,17 @@ def scanPort(ip, port, wait_time):
 #The threadpool handles the functions execution, and we tell asyncio that the threadpool task
 #Is to be awaited
 async def async_scan_wrapper(semaphore,exec,host,port,wait_time):
-    async with semaphore:
-        event_loop = asyncio.get_running_loop()
-        port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time)
-        return port_result
+    event_loop = asyncio.get_running_loop()
+    port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time, semaphore)
+    return port_result
 
 
 
 async def main(host,ports,max_threads,wait_time):
     thread_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
-    thread_semaphore = asyncio.Semaphore(max_threads-(max_threads//2))
+
+    #This is definitely a magic number, but it seems conservative enough to prevent the aforementioned race condition
+    thread_semaphore = threading.BoundedSemaphore(20)
     if ports:
         #Regex to pull out the numbers from the flags input
         #There has to be a more graceful way to do this
@@ -99,9 +104,8 @@ async def main(host,ports,max_threads,wait_time):
     #Scan common ports if no ports are provided
     else:
         port_list = common_ports
-    #Creates a list of tasks to be run 'asynchronously'
-    #Then tell them to start running
-    async_tasks = [async_scan_wrapper(thread_semaphore, thread_executor,host,port,wait_time) for port in port_list]
+
+    async_tasks = [async_scan_wrapper(thread_semaphore,thread_executor,host,port,wait_time) for port in port_list]
     try:
         port_results = await asyncio.gather(*async_tasks)
     except OSError:
