@@ -129,7 +129,7 @@ If your target loses internet connection, it's because your machine is not forwa
     *(You may also need to enable/start the "Routing and Remote Access" service)*
 
 ---
-### 4. Denial of Service / "Blackhole" Mode (`-dos`)
+### 4. Denial of Service (`-dos`)
 
 If your goal is to disconnect a target from the internet entirely rather than just sniffing their traffic, you can use the `-dos` flag. 
 
