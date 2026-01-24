@@ -63,7 +63,7 @@ if args.local_hosts:
         print("Mac Address: %s" % host.get("mac"))
         print("Manufacturer: %s" % host.get("manufacturer"))
         print("Host Name (Usually undetermined): %s\n" % host.get("host name"))
-    exit(1)
+    exit(0)
 #Set arguments to variables to be used by the scanner
 if args.target_ip == None:
     parser.print_help()
