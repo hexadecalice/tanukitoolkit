@@ -50,7 +50,7 @@ parser.add_argument("-w", "--wait", type=float, help="Specifies the time a threa
 parser.add_argument("-lh", "--local_hosts", help="Prints the IP addresses/Mac addresses of local devices", action="store_true")
 parser.add_argument("-ps", "--port_scan", help="Signifies that you would like to use the port scanning function of the toolkit, please include target IP.", action="store_true")
 parser.add_argument("-arp", "--arp_poison", help="Starts an ARP MitM attack against a given target, please include IP and Mac of target", action="store_true")
-parser.add_argument("-rm", "--router_mac", type=str, help="Used for specificing the router's mac address.")
+parser.add_argument("-rm", "--router_mac", type=str, help="Used for specifying the router's mac address.")
 parser.add_argument("-dos", "--dos_target", help="Poisons ARP target with garbage mac address.", action="store_true")
 
 args = parser.parse_args()
