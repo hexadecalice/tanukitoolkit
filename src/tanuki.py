@@ -13,6 +13,34 @@ router_ip = gateway['default'][netifaces.AF_INET][0]
 my_mac = gma()
 
 
+def format_ports(port_input):
+
+    format_error = "Please ensure your port is formatted single (ex. 8) or ranged (ex. 10,20)."
+    invalid_port = "Invalid port numbers. Please try again."
+    if ',' in port_input:
+        ports = port_input.split(',')
+        if len(ports) != 2:
+            print(format_error)
+            return None
+        else:
+            ports = list(map(int, ports))
+            low, high = min(ports[0], ports[1]), max(ports[0], ports[1])
+            if low < 0 or high > 65535:
+                print("Invalid port numbers. Please try again.")
+                return None
+            port_list = range(low, high+1)
+            return port_list
+    else:
+        try:
+            single_port = int(port_input)
+            if not (0 <= single_port <= 65535):
+                print(invalid_port)
+                return None
+        except ValueError:
+            print(invalid_port)
+            return None
+        return [single_port]
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-ip", "--target-ip",type=str, help="Specifies the host for target. Either a website or IP address.")
 parser.add_argument("-pr", "--port_range", type=str, help="Specifies a port range, formatted start,end. The default is a list of commonly used ports.")
@@ -53,8 +81,12 @@ else:
     wait_time = 3
 
 if args.port_scan:
-    asyncio.run(port_scan.main(target_host,args.port_range,max_threads,wait_time))
-    exit(1)
+    if args.port_range:
+        port_range = format_ports(args.port_range)
+    else:
+        port_range = None
+    asyncio.run(port_scan.main(target_host,port_range,max_threads,wait_time))
+    exit(0)
 if not args.dos_target:
     args.dos_target = False
 

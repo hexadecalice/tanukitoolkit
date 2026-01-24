@@ -90,17 +90,7 @@ async def main(host,ports,max_threads,wait_time):
     #This is definitely a magic number, but it seems conservative enough to prevent the aforementioned race condition
     thread_semaphore = threading.BoundedSemaphore(20)
     if ports:
-        #Regex to pull out the numbers from the flags input
-        #There has to be a more graceful way to do this
-        try:
-            formatted_port = re.search(r"(\d+),(\d+)", ports)
-            start_port = int(formatted_port.group(1))
-            end_port = int(formatted_port.group(2))
-            port_list = range(start_port, end_port+1)
-        except(ValueError, AttributeError):
-            print(error_message)
-            exit(1)
-
+        port_list = ports
     #Scan common ports if no ports are provided
     else:
         port_list = common_ports
