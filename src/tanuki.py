@@ -7,10 +7,12 @@ import time
 import netifaces
 from getmac import get_mac_address as gma
 import asyncio
+from mac_vendor_lookup import MacLookup
 welcome_message = "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
 gateway = netifaces.gateways()
 router_ip = gateway['default'][netifaces.AF_INET][0]
 my_mac = gma()
+mac_lookup = MacLookup()
 
 
 def format_ports(port_input):
@@ -56,8 +58,8 @@ parser.add_argument("-dos", "--dos_target", help="Poisons ARP target with garbag
 args = parser.parse_args()
 #Run host_gather and print the results to the screen if this flag is selected
 if args.local_hosts:
-
-    local_host = host_gather.device_scan(router_ip, verbose=False)
+    mac_lookup = MacLookup()
+    local_host = host_gather.device_scan(router_ip, mac_lookup, verbose=False)
     for host in local_host:
         print("IP Address: %s" % host.get("ip"))
         print("Mac Address: %s" % host.get("mac"))
@@ -102,7 +104,7 @@ if args.arp_poison:
         router_mac = args.router_mac
     else:
         print("Attempting to determine router MAC...")
-        router_mac = host_gather.device_scan(router_ip,verbose=False, arp_poison=True)
+        router_mac = host_gather.device_scan(router_ip,mac_lookup, verbose=False, arp_poison=True)
     if router_mac and isinstance(router_mac, str):
         try:
             #Pass our command line variables to arp_spoof and let it do its thing

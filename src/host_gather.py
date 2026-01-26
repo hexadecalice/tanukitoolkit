@@ -2,8 +2,6 @@ import scapy.all as scapy
 import socket
 import ipaddress
 import netifaces
-from mac_vendor_lookup import MacLookup
-
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
@@ -32,7 +30,7 @@ def format_range(host_ip, host_subnet):
     return network_interface
 
 
-def device_scan(router_ip, verbose=True, arp_poison=False):
+def device_scan(router_ip, mac_lookup, verbose=True, arp_poison=False):
     local_host = get_ip()
     local_subnetmask = get_subnetmask()
     cidr_prefix = format_range(local_host, local_subnetmask)
@@ -49,7 +47,7 @@ def device_scan(router_ip, verbose=True, arp_poison=False):
     answered, unanswered = scapy.srp(request_packet, timeout=2, verbose=False)
 
     response_list = []
-    mac_lookup = MacLookup()
+
     for sent, received in answered:
         if received.psrc == router_ip:
             if verbose:
