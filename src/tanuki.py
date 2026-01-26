@@ -25,10 +25,14 @@ def format_ports(port_input):
             print(format_error)
             return None
         else:
-            ports = list(map(int, ports))
+            try:
+                ports = list(map(int, ports))
+            except ValueError:
+                print(format_error)
+                return None
             low, high = min(ports[0], ports[1]), max(ports[0], ports[1])
             if low < 0 or high > 65535:
-                print("Invalid port numbers. Please try again.")
+                print(invalid_port)
                 return None
             port_list = range(low, high+1)
             return port_list
