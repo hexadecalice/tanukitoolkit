@@ -145,6 +145,19 @@ It specifically:
 2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a blackhole.
 3. **Spoofs ARP table:** Overwrites target's ARP tables, changing the router's MAC to 00:00:00:00:00:00
 ---
+
+## AI Disclosure
+Throughout the course of this project, I have tried to use AI as minimally as is possible (from a code generation standpoint).
+It was used to generate this README, and as a formatting tool. I've also plugged in files to Gemini to "prettify" the structure. 
+I've used it as a research tool throughout the course of this project, and it was used to parse much of the scapy/netifaces documentation when I was first starting. However, the core structure/logic of this program was written by me and me alone. 
+
+---
+## Other Notes & Thanks 
+This project was one I undertook to try to better understand networks and network security, it is far from a professional toolkit. 
+I apologize for the breadth of seemingly unneeded comments, some of you may relate to the fact that (especially when undertaking a new topic) it's easy to lose track of what you've learned. I left these comments as reminders to myself so that I don't lose track of key concepts, but I understand that they come across as a bit much.
+
+Thanks you to anyone who clones or even glances through this project, its really reignited a passion in me for networks and security. For as many flaws as it has, it's something I'm pretty proud of. I welcome any questions/issues/criticisms, and thanks so much for reading!
+
 ## All Commands (Quick Reference)
 
 | Flag | Long Flag | Description |
