@@ -156,7 +156,8 @@ I've used it as a research tool throughout the course of this project, and it wa
 This project was one I undertook to try to better understand networks and network security, it is far from a professional toolkit. 
 I apologize for the breadth of seemingly unneeded comments, some of you may relate to the fact that (especially when undertaking a new topic) it's easy to lose track of what you've learned. I left these comments as reminders to myself so that I don't lose track of key concepts, but I understand that they come across as a bit much.
 
-Thanks you to anyone who clones or even glances through this project, its really reignited a passion in me for networks and security. For as many flaws as it has, it's something I'm pretty proud of. I welcome any questions/issues/criticisms, and thanks so much for reading!
+Thank you to anyone who clones or even glances through this project, its really reignited a passion in me for networks and security. For as many flaws as it has, it's something I'm pretty proud of. I welcome any questions/issues/criticisms, and thanks so much for reading!
+---
 
 ## All Commands (Quick Reference)
 
