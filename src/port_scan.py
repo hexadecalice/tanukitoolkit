@@ -48,8 +48,10 @@ def scanPort(ip, port, wait_time, semaphore):
     with semaphore:
         try:
             sendSyn = scapy.sr1(synReq, verbose=0, timeout=wait_time)
-        except OSError:
-            print("Thread: " + threading.current_thread() + " has failed, if this happens frequently, try reducing your max threads.")
+        except PermissionError:
+	    print("Permission error thrown! Tanuki must be run with admin priveleges (use sudo or 'run as administrator').")
+	except OSError:
+            printf("Thread: {threading.current_thread().name} has failed, if this happens frequently, try reducing your max threads.")
     #Set conditionals for checking the response packet
     hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
     hasRst = sendSyn and sendSyn.haslayer('TCP') and (sendSyn['TCP'].flags == 'RA')
