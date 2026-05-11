@@ -2,8 +2,7 @@ from scapy.all import IP, TCP
 import scapy.all as scapy
 import re
 import asyncio
-import concurrent.futuresRP(op=2, pdst=router_ip, psrc=target_ip,hwsrc=target_mac)
-   heal_target = Ether(dst=target_mac)/ARP(op=2, pdst=target_ip, psrc=router_ip, hwsrc=router_mac)
+import concurrent.futures
 import argparse
 import threading
 from host_gather import device_scan
@@ -38,7 +37,6 @@ def printResults(port, result):
         print("Port %s is filtered." % port)
     elif result == "Status Unknown":
         print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
-
 
 def scanPort(ip, port, wait_time, semaphore):
     sendSyn = None
