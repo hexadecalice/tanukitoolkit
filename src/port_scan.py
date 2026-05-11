@@ -2,7 +2,8 @@ from scapy.all import IP, TCP
 import scapy.all as scapy
 import re
 import asyncio
-import concurrent.futures
+import concurrent.futuresRP(op=2, pdst=router_ip, psrc=target_ip,hwsrc=target_mac)
+   heal_target = Ether(dst=target_mac)/ARP(op=2, pdst=target_ip, psrc=router_ip, hwsrc=router_mac)
 import argparse
 import threading
 from host_gather import device_scan
@@ -49,9 +50,9 @@ def scanPort(ip, port, wait_time, semaphore):
         try:
             sendSyn = scapy.sr1(synReq, verbose=0, timeout=wait_time)
         except PermissionError:
-	    print("Permission error thrown! Tanuki must be run with admin priveleges (use sudo or 'run as administrator').")
-	except OSError:
-            printf("Thread: {threading.current_thread().name} has failed, if this happens frequently, try reducing your max threads.")
+            print("Permission error thrown! Tanuki must be run with admin priveleges (use sudo or 'run as administrator').")
+        except OSError:
+            print(f"Thread: {threading.current_thread().name} has failed, if this happens frequently, try reducing your max threads.")
     #Set conditionals for checking the response packet
     hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
     hasRst = sendSyn and sendSyn.haslayer('TCP') and (sendSyn['TCP'].flags == 'RA')
