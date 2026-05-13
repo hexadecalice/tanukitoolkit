@@ -1,26 +1,33 @@
 import argparse
-import port_scan
-import host_gather
-import arp_spoof
-import scanner
+import asyncio
 import time
+
 import netifaces
 from getmac import get_mac_address as gma
-import asyncio
 from mac_vendor_lookup import MacLookup
-welcome_message = "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
+
+import arp_spoof
+import host_gather
+import port_scan
+import scanner
+
+welcome_message = (
+    "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
+)
 gateway = netifaces.gateways()
-router_ip = gateway['default'][netifaces.AF_INET][0]
+router_ip = gateway["default"][netifaces.AF_INET][0]
 my_mac = gma()
 mac_lookup = MacLookup()
 
 
 def format_ports(port_input):
 
-    format_error = "Please ensure your port is formatted single (ex. 8) or ranged (ex. 10,20)."
+    format_error = (
+        "Please ensure your port is formatted single (ex. 8) or ranged (ex. 10,20)."
+    )
     invalid_port = "Invalid port numbers. Please try again."
-    if ',' in port_input:
-        ports = port_input.split(',')
+    if "," in port_input:
+        ports = port_input.split(",")
         if len(ports) != 2:
             print(format_error)
             return None
@@ -34,7 +41,7 @@ def format_ports(port_input):
             if low < 0 or high > 65535:
                 print(invalid_port)
                 return None
-            port_list = range(low, high+1)
+            port_list = range(low, high + 1)
             return port_list
     else:
         try:
@@ -47,20 +54,68 @@ def format_ports(port_input):
             return None
         return [single_port]
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument("-ip", "--target-ip",type=str, help="Specifies the host for target. Either a website or IP address.")
-parser.add_argument("-pr", "--port_range", type=str, help="Specifies a port range, formatted start,end. The default is a list of commonly used ports.")
-parser.add_argument("-t", "--thread_maximum",type=int, help="Sets the maximum number of threads for port scanning. Default is 50.")
-parser.add_argument("-tm", "--target_mac", help="Specifies target Mac Adddress for ARP poisoning")
-parser.add_argument("-w", "--wait", type=float, help="Specifies the time a thread should wait for a port to respond in seconds. Default is 3.")
-parser.add_argument("-lh", "--local_hosts", help="Prints the IP addresses/Mac addresses of local devices", action="store_true")
-parser.add_argument("-ps", "--port_scan", help="Signifies that you would like to use the port scanning function of the toolkit, please include target IP.", action="store_true")
-parser.add_argument("-arp", "--arp_poison", help="Starts an ARP MitM attack against a given target, please include IP and Mac of target", action="store_true")
-parser.add_argument("-rm", "--router_mac", type=str, help="Used for specifying the router's mac address.")
-parser.add_argument("-dos", "--dos_target", help="Poisons ARP target with garbage mac address.", action="store_true")
+parser.add_argument(
+    "-ip",
+    "--target-ip",
+    type=str,
+    help="Specifies the host for target. Either a website or IP address.",
+)
+parser.add_argument(
+    "-pr",
+    "--port_range",
+    type=str,
+    help="Specifies a port range, formatted start,end. The default is a list of commonly used ports.",
+)
+parser.add_argument(
+    "-t",
+    "--thread_maximum",
+    type=int,
+    help="Sets the maximum number of threads for port scanning. Default is 50.",
+)
+parser.add_argument(
+    "-tm", "--target_mac", help="Specifies target Mac Adddress for ARP poisoning"
+)
+parser.add_argument(
+    "-w",
+    "--wait",
+    type=float,
+    help="Specifies the time a thread should wait for a port to respond in seconds. Default is 3.",
+)
+parser.add_argument(
+    "-lh",
+    "--local_hosts",
+    help="Prints the IP addresses/Mac addresses of local devices",
+    action="store_true",
+)
+parser.add_argument(
+    "-ps",
+    "--port_scan",
+    help="Signifies that you would like to use the port scanning function of the toolkit, please include target IP.",
+    action="store_true",
+)
+parser.add_argument(
+    "-arp",
+    "--arp_poison",
+    help="Starts an ARP MitM attack against a given target, please include IP and Mac of target",
+    action="store_true",
+)
+parser.add_argument(
+    "-rm",
+    "--router_mac",
+    type=str,
+    help="Used for specifying the router's mac address.",
+)
+parser.add_argument(
+    "-dos",
+    "--dos_target",
+    help="Poisons ARP target with garbage mac address.",
+    action="store_true",
+)
 
 args = parser.parse_args()
-#Run host_gather and print the results to the screen if this flag is selected
+# Run host_gather and print the results to the screen if this flag is selected
 if args.local_hosts:
     mac_lookup = MacLookup()
     local_host = host_gather.device_scan(router_ip, mac_lookup, verbose=False)
@@ -70,7 +125,7 @@ if args.local_hosts:
         print("Manufacturer: %s" % host.get("manufacturer"))
         print("Host Name (Usually undetermined): %s\n" % host.get("host name"))
     exit(0)
-#Set arguments to variables to be used by the scanner
+# Set arguments to variables to be used by the scanner
 if args.target_ip == None:
     parser.print_help()
     exit(1)
@@ -91,12 +146,12 @@ if args.port_scan:
         port_range = format_ports(args.port_range)
     else:
         port_range = None
-    asyncio.run(port_scan.main(target_host,port_range,max_threads,wait_time))
+    asyncio.run(port_scan.main(target_host, port_range, max_threads, wait_time))
     exit(0)
 if not args.dos_target:
     args.dos_target = False
 
-#Logic for handling the ARP poisoning program
+# Logic for handling the ARP poisoning program
 if args.arp_poison:
     if args.target_mac:
         target_mac = args.target_mac
@@ -108,13 +163,22 @@ if args.arp_poison:
         router_mac = args.router_mac
     else:
         print("Attempting to determine router MAC...")
-        router_mac = host_gather.device_scan(router_ip,mac_lookup, verbose=False, arp_poison=True)
+        router_mac = host_gather.device_scan(
+            router_ip, mac_lookup, verbose=False, arp_poison=True
+        )
     if router_mac and isinstance(router_mac, str):
         try:
-            #Pass our command line variables to arp_spoof and let it do its thing
-            print("Beginning ARP Poison to host " + target_host + " and router at " + router_ip)
-            arp_spoof.start_arp_poison(target_host, target_mac, router_ip, my_mac, router_mac, args.dos_target)
-            while(1):
+            # Pass our command line variables to arp_spoof and let it do its thing
+            print(
+                "Beginning ARP Poison to host "
+                + target_host
+                + " and router at "
+                + router_ip
+            )
+            arp_spoof.start_arp_poison(
+                target_host, target_mac, router_ip, my_mac, router_mac, args.dos_target
+            )
+            while 1:
                 time.sleep(2)
         except TypeError:
             print("Something went wrong, make sure you're formatting the MAC correctly")
@@ -123,6 +187,9 @@ if args.arp_poison:
             print("Closing threads and ending ARP Poison...")
             arp_spoof.stop_event.set()
 
+            print("Restoring target's ARP tables...")
+            arp_spoof.restore_arp_tables(target_host, router_ip, router_mac, target_mac)
+            print("Exiting...")
 
     else:
         print("Unable to determine router's mac, try entering it manually.")
