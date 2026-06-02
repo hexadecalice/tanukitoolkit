@@ -1,8 +1,9 @@
 import argparse
 import asyncio
 import time
-
+import json
 import netifaces
+from datetime import datetime
 from getmac import get_mac_address as gma
 from mac_vendor_lookup import MacLookup
 
@@ -10,6 +11,7 @@ import arp_spoof
 import host_gather
 import port_scan
 import scanner
+import config
 
 welcome_message = (
     "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
@@ -114,6 +116,23 @@ parser.add_argument(
     action="store_true",
 )
 
+#Soon to be implemented, just haven't gotten around to it yet
+parser.add_argument(
+    "-ipv6",
+    "--ipv6_indicator",
+    help="Instructs all modules called to utilize IPv6 protocols whenever possible.",
+    action="store_true",
+)
+
+parser.add_argument(
+    "-r",
+    "--read_device_file",
+    help="Instructs the ARP module to read from a previously discovered list of devices",
+    action="store_true",
+
+)
+
+
 args = parser.parse_args()
 # Run host_gather and print the results to the screen if this flag is selected
 if args.local_hosts:
@@ -124,9 +143,14 @@ if args.local_hosts:
         print("Mac Address: %s" % host.get("mac"))
         print("Manufacturer: %s" % host.get("manufacturer"))
         print("Host Name (Usually undetermined): %s\n" % host.get("host name"))
+    time = str(datetime.now())
+    json_contents = {"time":time, "devices":local_host}
+    with open(config.DEVICE_FILE, "w") as file:
+        json.dump(json_contents, file)
+
     exit(0)
 # Set arguments to variables to be used by the scanner
-if args.target_ip == None:
+if args.target_ip == None and not args.read_device_file:
     parser.print_help()
     exit(1)
 else:
@@ -146,19 +170,15 @@ if args.port_scan:
         port_range = format_ports(args.port_range)
     else:
         port_range = None
-    asyncio.run(port_scan.main(target_host, port_range, max_threads, wait_time))
+    asyncio.run(port_scan.main(target_host, port_range, max_threads, wait_time, ipv6_indicator))
     exit(0)
 if not args.dos_target:
     args.dos_target = False
 
 # Logic for handling the ARP poisoning program
 if args.arp_poison:
-    if args.target_mac:
-        target_mac = args.target_mac
-    else:
-        print("Please enter a target mac using -tm for ARP spoofing.")
-        print("For a full list of commands, use python tanuki.py -h")
 
+    #Sets router IP and determines it if not found.
     if args.router_mac:
         router_mac = args.router_mac
     else:
@@ -166,6 +186,45 @@ if args.arp_poison:
         router_mac = host_gather.device_scan(
             router_ip, mac_lookup, verbose=False, arp_poison=True
         )
+
+    target_host = None
+    target_mac = None
+
+    if args.read_device_file:
+        with open(config.DEVICE_FILE, "r") as file:
+            saved_data = json.load(file)
+        scan_time = saved_data.get("time")
+        device_list = saved_data.get("devices")
+
+        for index, host in enumerate(device_list, start=1):
+            print(f"[{index}] IP: {host.get('ip'):<15} | MAC: {host.get('mac')} | Host: {host.get('host name')}")
+        user_input = input("Please enter the device you would like to scan:\n> ")
+
+        #Conditional makes sure its in range and is a number
+        if user_input.isdigit() and 0 <= int(user_input) <= len(device_list):
+            index = int(user_input) - 1
+            target_host = device_list[index].get("ip")
+            target_mac = device_list[index].get("mac")
+        else:
+            print("Sorry! Invalid input, please try again.")
+            exit(1)
+    else:
+        #Determine target host and mac from command line arguments
+        if args.target_mac:
+            target_mac = args.target_mac
+        else:
+            print("Please enter a target mac using -tm for ARP spoofing.")
+            print("Alternatively, use -lh to gather hosts and run the ARP command with the -r flag.")
+            print("For a full list of commands, use python tanuki.py -h")
+        if args.target_ip:
+            target_host = args.target_ip
+        else:
+            print("Please enter a target ip with -ip for ARP Spoofing")
+            print("Alternatively, use -lh to gather hosts and run the ARP command with the -r flag.")
+            print("For a full list of commands, use python tanuki.py -h")
+
+
+
     if router_mac and isinstance(router_mac, str):
         try:
             # Pass our command line variables to arp_spoof and let it do its thing
