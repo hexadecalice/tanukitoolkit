@@ -119,8 +119,8 @@ The toolkit will try to find your router's MAC address automatically. If it fail
 **Host Discovery Integration**
 
 By using the -r flag, you can utiltize previously discovered hosts from -lh. 
-If you run -arp bare with only the -r flag. it'll pull previously discovered hosts from the created JSON file. 
-From there, you can select one of the discovered hosts from a list. This is probably easiest for most use cases.
+If you run -arp bare with only the -r flag, it'll pull previously discovered hosts from the created JSON file. 
+From there, you can select one of the discovered hosts from a list. For most use cases, this is the easiest way of running it. 
 
 **Troubleshooting: Enabling IP Forwarding**
 
