@@ -34,6 +34,9 @@ This toolkit relies on a few key Python libraries. You can install them all usin
 
     pip install -r requirements.txt
 
+**For Windows Users:** Scapy requires npcap for many of it's functions executionw. If you're running into weird errors, ensure this is installed.
+
+
 ### 2. Administrator Privileges (CRITICAL!)
 
 To send and receive raw packets (which is how this *entire* toolkit works), you **must** run it with administrative or root privileges.
