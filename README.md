@@ -157,8 +157,8 @@ It specifically:
 If you happen to be toying around with the source code, heres a few quick notes:
 A lot of the main functions for discovering your ip, subnet, etc are found in utilities.py. This is just for code cleanliness.
 Things like error messages, jitter, timeouts, etc. are kept inside of config.py.
-I'm sure anyone looking at this is considerably more competent myself, so this might be pretty evident. 
-But if you'd like to change the program's functionality passed what's permitted in flags, those are the places to look.
+I'm sure anyone looking at this is considerably more competent than myself, so this might be pretty evident. 
+But if you'd like to change the program's functionality past what's permitted in flags, those are the places to look.
 
 ---
 
