@@ -116,6 +116,12 @@ The toolkit will try to find your router's MAC address automatically. If it fail
 
     python tanuki.py -arp -ip 192.168.1.10 -tm aa:bb:cc:dd:ee:ff -rm 11:22:33:44:55:66
 
+**Host Discovery Integration**
+
+By using the -r flag, you can utiltize previously discovered hosts from -lh. 
+If you run -arp bare with only the -r flag. it'll pull previously discovered hosts from the created JSON file. 
+From there, you can select one of the discovered hosts from a list. This is probably easiest for most use cases.
+
 **Troubleshooting: Enabling IP Forwarding**
 
 If your target loses internet connection, it's because your machine is not forwarding their packets to the router. You must enable IP forwarding on your *attacking* machine.
@@ -176,3 +182,4 @@ Thank you to anyone who clones or even glances through this project, its really 
 | `-tm`| `--target_mac` | **Required for ARP.** The target's MAC address. |
 | `-rm`| `--router_mac` | **Optional for ARP.** Manually specify the router's MAC. |
 | `-dos`| `--dos_target` | **Optional for ARP.** Set ARP spoofed MAC to 00:00:00:00:00, cutting target's internet. |
+| `-r`| `--read_device_file` | **Optional for ARP.** If you've recently run the host discovery, it lists those devices as options for scanning instead of requiring manual entry. |
