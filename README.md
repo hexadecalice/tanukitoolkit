@@ -166,7 +166,7 @@ But if you'd like to change the program's functionality past what's permitted in
 ---
 
 ## AI Disclosure
-Throughout the course of this project, I have tried to use AI as minimally as is possible (from a code generation standpoint).
+Throughout the course of this project, I have tried to use AI as minimally possible (from a code generation standpoint).
 It was used to generate large parts of this README, and as a formatting tool. By formatting, I mean I've plugged in files to Gemini to "prettify" the structure (fixing identation, spacing, etc).
 Its also been used as a research tool throughout the course of this project, and it was used to parse much of the scapy/netifaces documentation when I was first starting. 
 However, the core structure/logic of this program was written by me and me alone. 

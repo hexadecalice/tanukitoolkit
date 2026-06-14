@@ -35,6 +35,7 @@ SCAN_FILTER = "(udp port 53 or tcp port 443)"
 
 # HOST GATHERING
 GATHER_TIMEOUT = 2
+DEVICE_FILE = "device_data.json"
 
 # GENERAL SETTINGS
 INTERFACE = None

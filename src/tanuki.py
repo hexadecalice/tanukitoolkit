@@ -7,54 +7,20 @@ from datetime import datetime
 from getmac import get_mac_address as gma
 from mac_vendor_lookup import MacLookup
 
-import arp_spoof
-import host_gather
-import port_scan
-import scanner
-import config
+from modules import arp_spoof
+from modules import host_gather
+from modules import port_scan
+from modules import scanner
+from utils import config
+from utils import utilities
 
 welcome_message = (
-    "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
+    "Tanuki Toolkit - BETA\nUse python tanuki.py -h for a list of commands."
 )
 gateway = netifaces.gateways()
 router_ip = gateway["default"][netifaces.AF_INET][0]
 my_mac = gma()
 mac_lookup = MacLookup()
-
-
-def format_ports(port_input):
-
-    format_error = (
-        "Please ensure your port is formatted single (ex. 8) or ranged (ex. 10,20)."
-    )
-    invalid_port = "Invalid port numbers. Please try again."
-    if "," in port_input:
-        ports = port_input.split(",")
-        if len(ports) != 2:
-            print(format_error)
-            return None
-        else:
-            try:
-                ports = list(map(int, ports))
-            except ValueError:
-                print(format_error)
-                return None
-            low, high = min(ports[0], ports[1]), max(ports[0], ports[1])
-            if low < 0 or high > 65535:
-                print(invalid_port)
-                return None
-            port_list = range(low, high + 1)
-            return port_list
-    else:
-        try:
-            single_port = int(port_input)
-            if not (0 <= single_port <= 65535):
-                print(invalid_port)
-                return None
-        except ValueError:
-            print(invalid_port)
-            return None
-        return [single_port]
 
 
 parser = argparse.ArgumentParser()
@@ -134,6 +100,7 @@ parser.add_argument(
 
 
 args = parser.parse_args()
+print(utilities.welcome_message)
 # Run host_gather and print the results to the screen if this flag is selected
 if args.local_hosts:
     mac_lookup = MacLookup()
@@ -167,10 +134,10 @@ else:
 
 if args.port_scan:
     if args.port_range:
-        port_range = format_ports(args.port_range)
+        port_range = utilities.format_ports(args.port_range)
     else:
         port_range = None
-    asyncio.run(port_scan.main(target_host, port_range, max_threads, wait_time, ipv6_indicator))
+    asyncio.run(port_scan.main(target_host, port_range, max_threads, wait_time, args.ipv6_indicator))
     exit(0)
 if not args.dos_target:
     args.dos_target = False

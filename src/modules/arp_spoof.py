@@ -12,8 +12,8 @@ from scapy.layers.inet6 import (
     IPv6,
 )
 
-import config
-from host_gather import get_ip
+from utils import config
+from utils.utilities import get_ip
 
 stop_event = threading.Event()
 
@@ -83,7 +83,8 @@ def ipv6_poison_service(target_mac):
             if pkt.src == target_mac:
                 target_v6 = pkt[IPv6].src
 
-    # Discovery phase# Multicast Ping makes all nodes respond
+    # Discovery phase
+    # Multicast Ping makes all nodes respond
     print("Discovering IPv6 Link-Local addresses...")
     sniff(
         filter="ip6",
@@ -96,7 +97,7 @@ def ipv6_poison_service(target_mac):
         print("IPv6 Discovery Failed. Router/Target are being too quiet!")
         return
 
-    print(f"IPv6 DOS Engaged: Target {target_v6} | Router {router_v6}")
+    print(f"IPv6 DOS: Target {target_v6} | Router {router_v6}")
 
     # Route packets to a nonsense address
     na_packet = (
@@ -139,7 +140,7 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
     )
     threads.append(router_thread)
 
-    # IPv6 Poisoning
+
     if dos:
         print("Starting IPv6 poisoning...")
         ipv6_thread = threading.Thread(
@@ -147,7 +148,6 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
         )
         threads.append(ipv6_thread)
 
-    # Traffic Sniffer
     if not dos:
         from scanner import Scanner
 

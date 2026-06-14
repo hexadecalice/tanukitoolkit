@@ -2,38 +2,13 @@ import scapy.all as scapy
 import socket
 import ipaddress
 import netifaces
-def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(0)
-    try:
-        # Get IP by parsing info from UDP socket thats created at useless port
-        s.connect(('10.254.254.254', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
 
-def get_subnetmask():
-    for interface in netifaces.interfaces():
-        addresses = netifaces.ifaddresses(interface)
-        if netifaces.AF_INET in addresses:
-            for link in addresses[netifaces.AF_INET]:
-                if 'netmask' in link:
-                    return link['netmask']
-    return None
-
-#Convert the determined IP/Subnet into a useable interface object that represents the network range
-def format_range(host_ip, host_subnet):
-    network_interface = ipaddress.IPv4Interface(f"{host_ip}/{host_subnet}")
-    return network_interface
-
+from utils import utilities
 
 def device_scan(router_ip, mac_lookup, verbose=True, arp_poison=False):
-    local_host = get_ip()
-    local_subnetmask = get_subnetmask()
-    cidr_prefix = format_range(local_host, local_subnetmask)
+    local_host = utilities.get_ip()
+    local_subnetmask = utilities.get_subnetmask(local_host)
+    cidr_prefix = utilities.format_range(local_host, local_subnetmask)
     print("\nScanning on network segment: " + str(cidr_prefix) + "...")
     print("This may take a while")
 

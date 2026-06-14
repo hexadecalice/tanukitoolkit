@@ -1,6 +1,6 @@
 from scapy.all import ARP, IP, TCP, DNS, DNSQR, sniff, Ether, IPv6, PcapWriter
 from scapy.layers.tls.handshake import TLSClientHello
-from host_gather import get_ip
+from utils.utilities import get_ip
 from ipaddress import ip_address
 import socket
 from datetime import datetime
@@ -12,7 +12,6 @@ class Scanner:
     def __init__(self):
         self.filename = f"capture_{datetime.now().strftime('%Y%m%d-%H%M%S')}.pcap"
         self.writer = PcapWriter(self.filename, append=True, sync=True)
-        self.cache = {}
     def process_packet(self, packet):
         self.writer.write(packet)
         # Check for IPv4 or IPv6 with TCP
@@ -21,16 +20,7 @@ class Scanner:
             layer = IP if packet.haslayer(IP) else IPv6
             print("Source IP: " + packet[layer].src)
             print("Destination IP: " + packet[layer].dst)
-            #Check cache to see if IP has already been resolved,
-            if packet[layer].dst in self.cache:
-                print("Hostname: " + self.cache[packet[layer].dst])
-            else:
-                try:
-                    dns_lookup = socket.gethostbyaddr(packet[layer].dst)[0]
-                except (socket.gaierror, socket.herror, IndexError):
-                    dns_lookup = "Not Found."
-                self.cache[packet[layer].dst] = dns_lookup
-                print("Hostname: " +  dns_lookup)
+            
             print("Source Port: " + str(packet[TCP].sport))
             print("Destination Port: " + str(packet[TCP].dport) + "\n")
 

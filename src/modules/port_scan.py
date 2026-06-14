@@ -5,7 +5,7 @@ import asyncio
 import concurrent.futures
 import argparse
 import threading
-from host_gather import device_scan
+from modules.host_gather import device_scan
 
 common_ports = {
      20: 'FTP/Data',
@@ -38,9 +38,10 @@ def printResults(port, result):
     elif result == "Status Unknown":
         print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
 
-def scanPort(ip, port, wait_time, semaphore):
+def scanPort(ip, port, wait_time, semaphore, ipv6_indicator):
     sendSyn = None
-    synReq = IP(dst=ip)/TCP(dport=port, flags="S")
+    ip_layer = IPv6(dst=ip) if ipv6_indicator else IP(dst=ip)
+    synReq = ip_layer/TCP(dport=port, flags="S")
     #I think the race condition is happening internally in Scapys threads from the traceback it gives
     #And if thats the case then idk how to fix that, this has never caught one error
     #But I'm leaving it here just in case ¯\_(ツ)_/¯
@@ -60,7 +61,7 @@ def scanPort(ip, port, wait_time, semaphore):
          #Send RST tcp response with correct sequence and acknowledgement numbers to close the connection
          #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
 
-        rstPak = IP(dst=ip)/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
+        rstPak = ip_layer/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
         with semaphore:
             scapy.send(rstPak, verbose=0)
         return (port, "Open")
@@ -78,14 +79,14 @@ def scanPort(ip, port, wait_time, semaphore):
 #And makes it asynchronous, using run_in_executor to assign it to a threadpool
 #The threadpool handles the functions execution, and we tell asyncio that the threadpool task
 #Is to be awaited
-async def async_scan_wrapper(semaphore,exec,host,port,wait_time):
+async def async_scan_wrapper(semaphore,exec,host,port,wait_time,ipv6_indicator):
     event_loop = asyncio.get_running_loop()
-    port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time, semaphore)
+    port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time, semaphore,ipv6_indicator)
     return port_result
 
 
 
-async def main(host,ports,max_threads,wait_time):
+async def main(host,ports,max_threads,wait_time, ipv6_indicator):
     thread_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
 
     #This is definitely a magic number, but it seems conservative enough to prevent the aforementioned race condition
@@ -96,7 +97,7 @@ async def main(host,ports,max_threads,wait_time):
     else:
         port_list = common_ports
 
-    async_tasks = [async_scan_wrapper(thread_semaphore,thread_executor,host,port,wait_time) for port in port_list]
+    async_tasks = [async_scan_wrapper(thread_semaphore,thread_executor,host,port,wait_time, ipv6_indicator) for port in port_list]
     try:
         port_results = await asyncio.gather(*async_tasks)
     except OSError:
