@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import time
 import json
 import netifaces
