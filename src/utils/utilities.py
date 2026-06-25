@@ -6,6 +6,12 @@ from scapy.all import sr1, Ether, ARP, IP
 welcome_message = "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
 
 
+def safe_send(packet, iface=None):
+    try:
+        sendp(packet, iface=iface, verbose=0)
+    except Exception as e:
+        print(f"[!] Send Error: {e}")
+
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
