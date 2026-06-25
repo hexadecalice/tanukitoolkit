@@ -101,7 +101,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 print(utilities.welcome_message)
-# Run host_gather and print the results to the screen if this flag is selected
+
+#Run host_gather and print the results to the screen if this flag is selected
 if args.local_hosts:
     mac_lookup = MacLookup()
     local_host = host_gather.device_scan(router_ip, mac_lookup, verbose=False)
@@ -116,7 +117,8 @@ if args.local_hosts:
         json.dump(json_contents, file)
 
     exit(0)
-# Set arguments to variables to be used by the scanner
+
+
 if args.target_ip == None and not args.read_device_file:
     parser.print_help()
     exit(1)
@@ -132,17 +134,18 @@ if args.wait:
 else:
     wait_time = 3
 
+#Port scanning argument handling
 if args.port_scan:
     if args.port_range:
         port_range = utilities.format_ports(args.port_range)
     else:
         port_range = None
-    asyncio.run(port_scan.main(target_host, port_range, max_threads, wait_time, args.ipv6_indicator))
+    port_scan.main(target_host, port_range, max_threads, wait_time, args.ipv6_indicator)
     exit(0)
 if not args.dos_target:
     args.dos_target = False
 
-# Logic for handling the ARP poisoning program
+#Logic for handling the ARP poisoning program
 if args.arp_poison:
 
     #Sets router IP and determines it if not found.
@@ -157,12 +160,16 @@ if args.arp_poison:
     target_host = None
     target_mac = None
 
+
+    #Reads from a json file and gives a list of device targets -r flag was selecteed
     if args.read_device_file:
+
         with open(config.DEVICE_FILE, "r") as file:
             saved_data = json.load(file)
         scan_time = saved_data.get("time")
         device_list = saved_data.get("devices")
 
+        #I hate format strings so goddamn much. A pain to write and to look at.
         for index, host in enumerate(device_list, start=1):
             print(f"[{index}] IP: {host.get('ip'):<15} | MAC: {host.get('mac')} | Host: {host.get('host name')}")
         user_input = input("Please enter the device you would like to scan:\n> ")
@@ -176,7 +183,7 @@ if args.arp_poison:
             print("Sorry! Invalid input, please try again.")
             exit(1)
     else:
-        #Determine target host and mac from command line arguments
+        #Determine target host and mac 
         if args.target_mac:
             target_mac = args.target_mac
         else:
@@ -191,10 +198,9 @@ if args.arp_poison:
             print("For a full list of commands, use python tanuki.py -h")
 
 
-
-    if router_mac and isinstance(router_mac, str):
+    if router_mac:
         try:
-            # Pass our command line variables to arp_spoof and let it do its thing
+            #Pass our command line variables to arp_spoof and let it do its thing
             print(
                 "Beginning ARP Poison to host "
                 + target_host
@@ -206,8 +212,8 @@ if args.arp_poison:
             )
             while 1:
                 time.sleep(2)
-        except TypeError:
-            print("Something went wrong, make sure you're formatting the MAC correctly")
+        except (TypeError, ValueError):
+            print("Something went wrong, make sure you're formatting your arguments correctly.")
         except KeyboardInterrupt:
             print("--Ctrl+C Detected--")
             print("Closing threads and ending ARP Poison...")

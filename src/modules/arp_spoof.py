@@ -19,7 +19,6 @@ stop_event = threading.Event()
 
 
 def safe_send(packet, iface=None):
-    # Wrapper for sendp to handle common socket errors.
     try:
         sendp(packet, iface=iface, verbose=0)
     except Exception as e:

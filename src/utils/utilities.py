@@ -25,6 +25,9 @@ def get_subnetmask(active_ip):
         if netifaces.AF_INET in addresses:
             for link in addresses[netifaces.AF_INET]:
                 if link.get('addr') == active_ip:
+                #According to someone on stack exchange, sometimes netifaces will exclude the 'netmask' key 
+                #But still have an 'addr' key, this might be useless, I've never run across an error personally
+                #but better safe than sorry ig
                     if 'netmask' in link:
                         return link['netmask']
     return None
