@@ -1,8 +1,7 @@
 import socket
 import ipaddress
 import netifaces
-from scapy.all import sr1, Ether, ARP, IP
-
+from scapy.all import sr1, Ether, ARP, IP, sendp
 welcome_message = "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
 
 

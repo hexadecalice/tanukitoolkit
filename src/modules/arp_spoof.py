@@ -1,7 +1,6 @@
 import socket
 import threading
 import time
-
 from scapy.all import ARP, Ether, sendp, sniff
 from scapy.layers.inet6 import (
     ICMPv6EchoRequest,
@@ -14,7 +13,7 @@ from scapy.layers.inet6 import (
 
 from utils import config
 from utils import utilities
-
+from modules.scanner import Scanner
 
 stop_event = threading.Event()
 
@@ -146,14 +145,14 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
         threads.append(ipv6_thread)
 
     if not dos:
-        from scanner import Scanner
+        
 
         scanner = Scanner()
         try:
             my_ip = get_ip()
-            my_filter = f"not host {my_ip} and (udp port 53 or tcp port 443)"
+            my_filter = f"ip4 and not host {my_ip} and (udp port 53 or tcp port 443)"
         except Exception:
-            my_filter = "(udp port 53 or tcp port 443)"
+            my_filter = "ip4 and (udp port 53 or tcp port 443)"
 
         sniff_thread = threading.Thread(
             target=lambda: sniff(prn=scanner.process_packet, filter=my_filter, store=0),
