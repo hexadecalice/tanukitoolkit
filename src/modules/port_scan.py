@@ -81,7 +81,7 @@ def main(host,ports,max_threads,wait_time, ipv6_indicator):
     future_objects = []
     port_results = []
 
-    #This is definitely a magic number, but it seems conservative enough to prevent the aforementioned race condition
+    
     if ports:
         port_list = ports
     #Scan common ports if no ports are provided
