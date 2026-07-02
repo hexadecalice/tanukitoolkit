@@ -150,8 +150,8 @@ When enabled, the toolkit will flood the target with "Blackhole" packets (using 
     python tanuki.py -arp -ip 192.168.1.10 -tm aa:bb:cc:dd:ee:ff -dos
 
 It specifically:
-1. **Suppresses Router Advertisements (RA):** Tells the target the IPv6 router no longer exists.
-2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a blackhole.
+1. **Suppresses Router Advertisements (RA):** Sends targeted router advertisements with the router lifetime field set to 0
+2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a nonsense MAC.
 3. **Spoofs ARP table:** Overwrites target's ARP tables, changing the router's MAC to 00:00:00:00:00:00
 ---
 
