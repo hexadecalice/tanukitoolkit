@@ -46,7 +46,21 @@ void write_packet(u_char *args, struct pcap_pkthdr *packet_header, const u_char 
 
 
 int main(void) { 
+     
+    char filter_buffer[256];
+    char* wrapper_input = fgets(filter_buffer, sizeof(filter_buffer), stdin);
+
+    if(wrapper_input == NULL) { 
+        printf("Reading from stdin failed, exiting...");
+        exit(3);
+    }
+
+    int newline_index = strcspn(filter_buffer, "\n"); 
+    filter_buffer[newline_index] = '\0'; 
+
+    printf("%s\n", filter_buffer);
     
+
     char *device; 
     pcap_if_t *network_devices; 
 
@@ -60,6 +74,8 @@ int main(void) {
 
     int packet_count = 0;
     int *count_pointer = &packet_count; 
+
+
 
     signal(SIGINT, handle_sigint);
 
