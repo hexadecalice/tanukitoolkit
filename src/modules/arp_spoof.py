@@ -3,6 +3,7 @@ import threading
 import time
 import signal 
 from scapy.all import ARP, Ether, sendp, sniff
+
 from scapy.layers.inet6 import (
     ICMPv6EchoRequest,
     ICMPv6ND_NA,
@@ -13,7 +14,7 @@ from scapy.layers.inet6 import (
 )
 
 from utils import config
-from utils.utilities import get_ip
+
 
 stop_event = threading.Event()
 
@@ -124,11 +125,10 @@ def start_sniffer_binary():
 
     #what a function
     sniffer_binary = subprocess.Popen(args=arguments, start_new_session=True,stdout=subprocess.PIPE, stdin=subprocess.PIPE, text=True, cwd="modules/binaries")
-    
-    bpf = "not ip6 and not host %s and not port 443\n" % get_ip()
 
-    sniffer_binary.stdin.write(bpf)
+    sniffer_binary.stdin.write(config.BPF)
     sniffer_binary.stdin.flush()
+    print("Packet sniffer opened successfully, the capture has begun! ^-^\nPress ctrl+c at any time to exit.")
     while not stop_event.is_set(): 
         time.sleep(2)
     sniffer_binary.send_signal(signal.SIGINT)

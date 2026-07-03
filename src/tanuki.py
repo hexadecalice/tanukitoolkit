@@ -158,6 +158,7 @@ if args.arp_poison:
     target_mac = None
 
     if args.read_device_file:
+        
         with open(config.DEVICE_FILE, "r") as file:
             saved_data = json.load(file)
         scan_time = saved_data.get("time")
@@ -165,7 +166,7 @@ if args.arp_poison:
 
         for index, host in enumerate(device_list, start=1):
             print(f"[{index}] IP: {host.get('ip'):<15} | MAC: {host.get('mac')} | Host: {host.get('host name')}")
-        user_input = input("Please enter the device you would like to scan:\n> ")
+        user_input = input("Please enter the device you would like to spoof:\n> ")
 
         #Conditional makes sure its in range and is a number
         if user_input.isdigit() and 0 <= int(user_input) <= len(device_list):
