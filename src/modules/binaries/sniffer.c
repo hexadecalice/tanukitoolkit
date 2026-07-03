@@ -57,8 +57,6 @@ int main(void) {
 
     int newline_index = strcspn(filter_buffer, "\n"); 
     filter_buffer[newline_index] = '\0'; 
-
-    printf("%s\n", filter_buffer);
     
 
     char *device; 
@@ -69,7 +67,6 @@ int main(void) {
     const u_char *packet;
     char errbuff[PCAP_ERRBUF_SIZE];
 
-    char* filename = "test.pcap\0";
     pcap_dumper_t *file_handle;
 
     int packet_count = 0;
@@ -100,10 +97,34 @@ int main(void) {
 
     if(csession == NULL) { 
         printf("Session creation failed with error %s", errbuff);
+        exit(4);
     }  
 
 
-    file_handle = pcap_dump_open(csession, filename);
+    
+    
+    int fileCount = 0;
+    bool fileExists = 1;
+    char* filename = "capture";
+    char newFile[256]; 
+
+    //Write first attempt at file name to buffer
+    snprintf(newFile, sizeof(newFile), "%s-%d.pcap", filename, fileCount);
+
+    while(fileExists) { 
+        //Tries to open file, if it already exists overwrite buffer w/ new name
+        FILE * pcap_file = fopen(newFile, "r");
+        if(pcap_file != NULL) { 
+            fileCount++; 
+            snprintf(newFile, sizeof(newFile), "%s-%d.pcap", filename, fileCount); 
+            fclose(pcap_file);
+            
+        } else { 
+            fileExists = 0; 
+        }
+    }
+
+    file_handle = pcap_dump_open(csession, newFile);
 
      Configuration config = { 
         .file_handle = file_handle, 
@@ -115,7 +136,7 @@ int main(void) {
     //this is annoying but it helps me remember
     //loop arguments are session handle, time to loop, loopback function, and user variables
     pcap_loop(csession, -1, (pcap_handler) write_packet, (u_char*) &config);
-
+    pcap_dump_close(config.file_handle);
     free(device);
 
     printf("\nPackets Captured: %i\n", packet_count);
