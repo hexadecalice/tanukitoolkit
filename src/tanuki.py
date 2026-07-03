@@ -201,7 +201,7 @@ if args.arp_poison:
                 + " and router at "
                 + router_ip
             )
-            arp_spoof.start_arp_poison(
+            thread_list = arp_spoof.start_arp_poison(
                 target_host, target_mac, router_ip, my_mac, router_mac, args.dos_target
             )
             while 1:
@@ -212,6 +212,9 @@ if args.arp_poison:
             print("--Ctrl+C Detected--")
             print("Closing threads and ending ARP Poison...")
             arp_spoof.stop_event.set()
+
+            for thread in thread_list: 
+                thread.join()
 
             print("Restoring target's ARP tables...")
             arp_spoof.restore_arp_tables(target_host, router_ip, router_mac, target_mac)

