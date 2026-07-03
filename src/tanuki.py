@@ -158,9 +158,13 @@ if args.arp_poison:
     target_mac = None
 
     if args.read_device_file:
+        try: 
+            with open(config.DEVICE_FILE, "r") as file:
+                saved_data = json.load(file)
         
-        with open(config.DEVICE_FILE, "r") as file:
-            saved_data = json.load(file)
+        except FileNotFoundError: 
+            print("Data file not found! Try running tanuki.py -lh first to populate the list!")
+            exit(1)
         scan_time = saved_data.get("time")
         device_list = saved_data.get("devices")
 
