@@ -162,9 +162,12 @@ if args.arp_poison:
 
     #Reads from a json file and gives a list of device targets -r flag was selecteed
     if args.read_device_file:
-
-        with open(config.DEVICE_FILE, "r") as file:
-            saved_data = json.load(file)
+        try:
+            with open(config.DEVICE_FILE, "r") as file:
+                saved_data = json.load(file)
+        except FileNotFoundError:
+            print("Data file not found! Try running tanuki.py -lh first to populate the file.")
+            exit(1)
         scan_time = saved_data.get("time")
         device_list = saved_data.get("devices")
 
