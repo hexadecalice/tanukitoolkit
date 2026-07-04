@@ -150,8 +150,8 @@ When enabled, the toolkit will flood the target with "Blackhole" packets (using 
     python tanuki.py -arp -ip 192.168.1.10 -tm aa:bb:cc:dd:ee:ff -dos
 
 It specifically:
-1. **Suppresses Router Advertisements (RA):** Tells the target the IPv6 router no longer exists.
-2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a blackhole.
+1. **Suppresses Router Advertisements (RA):** Sends targeted router advertisements with the router lifetime field set to 0
+2. **Spoofs Neighbor Advertisements (NA):** Overwrites the target's neighbor cache to redirect IPv6 traffic into a nonsense MAC.
 3. **Spoofs ARP table:** Overwrites target's ARP tables, changing the router's MAC to 00:00:00:00:00:00
 ---
 
@@ -166,13 +166,12 @@ But if you'd like to change the program's functionality past what's permitted in
 ---
 
 ## AI Disclosure
-Throughout the course of this project, I have tried to use AI as minimally possible (from a code generation standpoint).
-It was used to generate large parts of this README, and as a formatting tool. By formatting, I mean I've plugged in files to Gemini to "prettify" the structure (fixing identation, spacing, etc).
-Its also been used as a research tool throughout the course of this project, and it was used to parse much of the scapy/netifaces documentation when I was first starting. 
-However, the core structure/logic of this program was written by me and me alone. 
+
+Throughout the course of this project I have used generative AI in a limited capacity. It was used to generate the instructional parts of this README, and outside of that I've used it primarily as a code formatter when I felt the source files were getting a bit too unruly. It's also been a fantastic research tool, and especailly in the beginning of this project it was used to parse Scapy and Netifaces documentation, along with a few (incredibly verbose) networking books I had picked up to aid in my learning. However, its worth stating that the code, logic, architecture, etc were written manually by me and me alone. 
 
 ---
 ## Other Notes & Thanks 
+
 This project was one I undertook to try to better understand networks and network security, it is far from a professional toolkit. 
 I apologize for the breadth of seemingly unneeded comments, some of you may relate to the fact that (especially when undertaking a new topic) it's easy to lose track of what you've learned. I left these comments as reminders to myself so that I don't lose track of key concepts, but I understand that they come across as a bit much.
 

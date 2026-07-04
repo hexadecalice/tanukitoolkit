@@ -1,12 +1,12 @@
-from scapy.all import IP, TCP
+from scapy.all import IP, TCP, IPv6
 import scapy.all as scapy
 import re
-import asyncio
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 import argparse
 import threading
+from utils import utilities
 from modules.host_gather import device_scan
-
+from concurrent.futures import as_completed
 common_ports = {
      20: 'FTP/Data',
      21: 'FTP/Control',
@@ -38,20 +38,22 @@ def printResults(port, result):
     elif result == "Status Unknown":
         print("Port %s's status is unknown. Please scroll up to find response packet information." % port)
 
-def scanPort(ip, port, wait_time, semaphore, ipv6_indicator):
+def scanPort(ip, port, wait_time, ipv6_indicator):
     sendSyn = None
     ip_layer = IPv6(dst=ip) if ipv6_indicator else IP(dst=ip)
     synReq = ip_layer/TCP(dport=port, flags="S")
+
     #I think the race condition is happening internally in Scapys threads from the traceback it gives
     #And if thats the case then idk how to fix that, this has never caught one error
     #But I'm leaving it here just in case ¯\_(ツ)_/¯
-    with semaphore:
-        try:
-            sendSyn = scapy.sr1(synReq, verbose=0, timeout=wait_time)
-        except PermissionError:
-            print("Permission error thrown! Tanuki must be run with admin priveleges (use sudo or 'run as administrator').")
-        except OSError:
-            print(f"Thread: {threading.current_thread().name} has failed, if this happens frequently, try reducing your max threads.")
+    try:
+        sendSyn = scapy.sr1(synReq, verbose=0, timeout=wait_time)
+    except PermissionError:
+        print("Permission error thrown! Tanuki must be run with admin priveleges (use sudo or 'run as administrator').")
+        exit(-1)
+    except OSError:
+        print(f"Thread: {threading.current_thread().name} has failed, if this happens frequently, try reducing your max threads.")
+        exit(-1)
     #Set conditionals for checking the response packet
     hasSynAck = sendSyn and sendSyn.haslayer('TCP') and sendSyn['TCP'].flags == 'SA'
     hasRst = sendSyn and sendSyn.haslayer('TCP') and (sendSyn['TCP'].flags == 'RA')
@@ -62,8 +64,8 @@ def scanPort(ip, port, wait_time, semaphore, ipv6_indicator):
          #We do this to end the connection while the TCP handshake is only half open, this makes it ~stealthier~
 
         rstPak = ip_layer/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
-        with semaphore:
-            scapy.send(rstPak, verbose=0)
+        
+        utilities.safe_send(rstPak, verbose=0)
         return (port, "Open")
     elif hasRst:
              return (port, "Closed")
@@ -75,31 +77,29 @@ def scanPort(ip, port, wait_time, semaphore, ipv6_indicator):
 
 
 
-#This is a wrapper function, that takes our blocking scapy function
-#And makes it asynchronous, using run_in_executor to assign it to a threadpool
-#The threadpool handles the functions execution, and we tell asyncio that the threadpool task
-#Is to be awaited
-async def async_scan_wrapper(semaphore,exec,host,port,wait_time,ipv6_indicator):
-    event_loop = asyncio.get_running_loop()
-    port_result = await event_loop.run_in_executor(exec, scanPort, host, port, wait_time, semaphore,ipv6_indicator)
-    return port_result
+def main(host,ports,max_threads,wait_time, ipv6_indicator):
+    future_objects = []
+    port_results = []
 
-
-
-async def main(host,ports,max_threads,wait_time, ipv6_indicator):
-    thread_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
-
-    #This is definitely a magic number, but it seems conservative enough to prevent the aforementioned race condition
-    thread_semaphore = threading.BoundedSemaphore(20)
+    
     if ports:
         port_list = ports
     #Scan common ports if no ports are provided
     else:
         port_list = common_ports
 
-    async_tasks = [async_scan_wrapper(thread_semaphore,thread_executor,host,port,wait_time, ipv6_indicator) for port in port_list]
     try:
-        port_results = await asyncio.gather(*async_tasks)
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            for port in port_list: 
+                result = executor.submit(scanPort,host, port, wait_time,ipv6_indicator)
+                future_objects.append(result)
+
+            future_objects = as_completed(future_objects)
+            for future in future_objects: 
+                port_results.append(future.result())
+            port_results.sort()
+
+
     except OSError:
         print("OSError occured, most likely an IP/website typo.\nPlease check your target IP and try again.")
         exit(1)

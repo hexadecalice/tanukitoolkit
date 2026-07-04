@@ -15,7 +15,7 @@ class Scanner:
     def process_packet(self, packet):
         self.writer.write(packet)
         # Check for IPv4 or IPv6 with TCP
-        if (packet.haslayer(IP) or packet.haslayer(IPv6)) and packet.haslayer(TCP):
+        if (packet.haslayer(IP) and packet.haslayer(TCP)):
             print("---PACKET INFO:---")
             layer = IP if packet.haslayer(IP) else IPv6
             print("Source IP: " + packet[layer].src)
@@ -26,7 +26,7 @@ class Scanner:
 
 
         #check if the packet has a DNS layer
-        if packet.haslayer(DNS) and (packet.haslayer(IP) or packet.haslayer(IPv6)):
+        if packet.haslayer(DNS) and (packet.haslayer(IP)):
             layer = IP if packet.haslayer(IP) else IPv6
             #Check to ensure its a DNS Request
             if packet[DNS].qr == 0:

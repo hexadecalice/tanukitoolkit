@@ -1,10 +1,15 @@
 import socket
 import ipaddress
 import netifaces
-from scapy.all import sr1, Ether, ARP, IP
-
+from scapy.all import sr1, Ether, ARP, IP, sendp
 welcome_message = "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
 
+
+def safe_send(packet, iface=None):
+    try:
+        sendp(packet, iface=iface, verbose=0)
+    except Exception as e:
+        print(f"[!] Send Error: {e}")
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -25,6 +30,9 @@ def get_subnetmask(active_ip):
         if netifaces.AF_INET in addresses:
             for link in addresses[netifaces.AF_INET]:
                 if link.get('addr') == active_ip:
+                #According to someone on stack exchange, sometimes netifaces will exclude the 'netmask' key 
+                #But still have an 'addr' key, this might be useless, I've never run across an error personally
+                #but better safe than sorry ig
                     if 'netmask' in link:
                         return link['netmask']
     return None
