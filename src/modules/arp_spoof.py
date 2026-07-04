@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+import platform
 import signal 
 from scapy.all import ARP, Ether, sendp, sniff
 
@@ -121,7 +122,21 @@ def ipv6_poison_service(target_mac):
 
 def start_sniffer_binary():
     import subprocess
-    arguments = ["./sniffer"]
+    current_os = platform.system() 
+
+    if current_os == "Windows":
+        arguments = ["sniffer.exe"]
+    elif current_os in ["Linux", "Darwin"]:
+        arguments = ["./sniffer"]
+    else:
+        arguments = None
+
+    if not arguments: 
+        print("Couldn't determine OS, unfortunately Tanuki may not have a sniffer binary for your OS!")
+        print("Updates are coming, but in the meantime feel free to download older versions of Tanuki.")
+        print("Deprecated versions are purely python, and will run independent of your OS.")
+        print("Sorry for the inconvenience!")
+        exit(2)
 
     #what a function
     sniffer_binary = subprocess.Popen(args=arguments, start_new_session=True,stdout=subprocess.PIPE, stdin=subprocess.PIPE, text=True, cwd="modules/binaries")
