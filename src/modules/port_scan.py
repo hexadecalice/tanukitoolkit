@@ -65,7 +65,7 @@ def scanPort(ip, port, wait_time, ipv6_indicator):
 
         rstPak = ip_layer/TCP(sport=synReq['TCP'].sport, dport=port, seq=sendSyn['TCP'].ack, ack=sendSyn['TCP'].seq+1, flags="R")
         
-        utilities.safe_send(rstPak, verbose=0)
+        utilities.safe_send(rstPak)
         return (port, "Open")
     elif hasRst:
              return (port, "Closed")
