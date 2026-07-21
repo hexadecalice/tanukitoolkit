@@ -9,7 +9,6 @@ from mac_vendor_lookup import MacLookup
 from modules import arp_spoof
 from modules import host_gather
 from modules import port_scan
-from modules import scanner
 from utils import config
 from utils import utilities
 
