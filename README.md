@@ -1,11 +1,11 @@
-# Tanuki Toolkit 🦝
+# Tanuki Toolkit 
 A lightweight toolkit for network analysis and security testing.
 
 
 
 ---
 
-## ⚠️ Warning & Ethical Use Disclaimer ⚠️
+## Warning & Ethical Use Disclaimer  
 
 This tool is intended for **educational purposes and authorized security testing only**.
 
@@ -20,13 +20,13 @@ Using this tool (especially the ARP poisoning module) on any network without exp
 The Tanuki Toolkit is a small, Python-based collection of tools for network reconnaissance and testing. It's built to be a simple, command-line-driven framework for common security tasks.
 
 ### Features
-* 📡 **Local Host Discovery:** See all devices on your local network.
-* 🚪 **Port Scanner:** Check for open ports on a target host.
-* 🎭 **ARP Poisoning:** Launch a Man-in-the-Middle attack to intercept traffic.
+* **Local Host Discovery:** See all devices on your local network.
+* **Port Scanner:** Check for open ports on a target host.
+* **ARP Poisoning:** Launch a Man-in-the-Middle attack to intercept traffic.
 
 ---
 
-## 🚨 Setup & Installation 🚨
+##  Setup & Installation 
 
 ### 1. Dependencies
 
@@ -48,7 +48,7 @@ To send and receive raw packets (which is how this *entire* toolkit works), you 
 
 ---
 
-## How to Use 🦝
+## How to Use
 
 All commands are run from the main `tanuki.py` launcher.
 
@@ -121,8 +121,8 @@ The toolkit will try to find your router's MAC address automatically. If it fail
 
 **Host Discovery Integration**
 
-By using the -r flag, you can utiltize previously discovered hosts from -lh. 
-If you run -arp bare with only the -r flag, it'll pull previously discovered hosts from the created JSON file. 
+By using the -r flag, you can utiltize previously discovered hosts. 
+If you run -arp bare with only the -r flag, it'll pull hosts discovered by -lh from a JSON file (this can also be viewed directly at device_data.json). 
 From there, you can select one of the discovered hosts from a list. For most use cases, this is the easiest way of running it. 
 
 **Troubleshooting: Enabling IP Forwarding**
@@ -158,10 +158,18 @@ It specifically:
 ## Notes for nerds
 
 If you happen to be toying around with the source code, heres a few quick notes:
-A lot of the main functions for discovering your ip, subnet, etc are found in utilities.py. This is just for code cleanliness.
+A lot of the main functions for generating your IP, subnet, etc are found in utilities.py. This is just for code cleanliness.
 Things like error messages, jitter, timeouts, etc. are kept inside of config.py.
-I'm sure anyone looking at this is considerably more competent than myself, so this might be pretty evident. 
-But if you'd like to change the program's functionality past what's permitted in flags, those are the places to look.
+If you'd like to change the program's functionality past what's permitted in flags, those are the places to look.
+
+The ARP spoofing module uses a packet sniffing engine written in C and compiled into both a native Linux binary and a Windows executable. 
+This was done mainly to improve performance compared to the original design which used Scapy's native sniff() function. 
+Tanuki's ARP module uses subprocess' popen() to call the exectuable, then pipes the BPF via STDIN. 
+
+It handles teardown via a threading.Event(), which when set triggers a SIGINT sent to the binary.
+The binary handles the signal by closing its sniffing loop and exiting cleanly.
+The actual packet sniffing logic is written using libpcap, the source code is included in the binaries folder. 
+
 
 ---
 
