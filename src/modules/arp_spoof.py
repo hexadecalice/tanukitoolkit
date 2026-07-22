@@ -6,19 +6,11 @@ import signal
 from scapy.all import ARP, Ether, sendp, sniff
 
 from scapy.all import ARP, Ether, sendp, sniff
-from scapy.layers.inet6 import (
-    ICMPv6EchoRequest,
-    ICMPv6ND_NA,
-    ICMPv6ND_RA,
-    ICMPv6ND_RS,
-    ICMPv6NDOptDstLLAddr,
-    IPv6,
-)
 
 from utils import config
 from utils.utilities import get_ip
 from utils import utilities
-from modules import ipv6_poison 
+from modules import ipv6_poison
 
 stop_event = threading.Event()
 
@@ -114,17 +106,11 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
     if dos:
         print("Starting IPv6 poisoning...")
         ipv6_thread = threading.Thread(
-            target=ipv6_poison_service, args=(target_mac,), daemon=True
+            target=ipv6_poison.poison_service, args=(target_mac,), daemon=True
         )
         threads.append(ipv6_thread)
 
     else:
-        try:
-            my_ip = get_ip()
-            my_filter = f"ip4 and not host {my_ip} and (udp port 53 or tcp port 443)"
-        except Exception:
-            my_filter = "ip4 and (udp port 53 or tcp port 443)"
-
         sniff_thread = threading.Thread(
             target=start_sniffer_binary,
             daemon=True,
