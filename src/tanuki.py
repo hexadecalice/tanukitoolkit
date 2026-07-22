@@ -148,7 +148,7 @@ if args.arp_poison:
     #Sets router IP and determines it if not found.
     if args.router_mac:
         router_mac = args.router_mac
-    else:
+    elif (not args.router_mac) and (not args.read_device_file):
         print("Attempting to determine router MAC...")
         router_mac = host_gather.device_scan(
             router_ip, mac_lookup, verbose=False, arp_poison=True
@@ -169,6 +169,8 @@ if args.arp_poison:
 
         #I hate format strings so goddamn much. A pain to write and to look at.
         for index, host in enumerate(device_list, start=1):
+            if host.get('ip') == router_ip:
+                router_mac = host.get('mac')
             print(f"[{index}] IP: {host.get('ip'):<15} | MAC: {host.get('mac')} | Host: {host.get('host name')}")
         user_input = input("Please enter the device you would like to scan:\n> ")
 
@@ -220,7 +222,6 @@ if args.arp_poison:
 
             for thread in thread_list: 
                 thread.join()
-
             print("Restoring target's ARP tables...")
             arp_spoof.restore_arp_tables(target_host, router_ip, router_mac, target_mac)
             print("Exiting...")

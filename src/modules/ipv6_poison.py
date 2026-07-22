@@ -1,4 +1,4 @@
-from scapy.all import Ether, sniff 
+from scapy.all import Ether, sniff
 import time 
 from utils import utilities
 from scapy.layers.inet6 import (
