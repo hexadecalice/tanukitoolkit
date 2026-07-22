@@ -1,3 +1,5 @@
+from utils import utilities
+
 # PORT SCANNER
 DEFAULT_THREADS = 50
 PORT_TIMEOUT = 5
@@ -31,11 +33,15 @@ HEAL_JITTER = 0.5
 
 # PACKET SNIFFER
 CAPTURE_DIRECTORY = "/capture/"
-SCAN_FILTER = "(udp port 53 or tcp port 443)"
+ip = utilities.get_ip()
+BPF = f"not host {ip} and not port 443 and not ip6\n"
+
 
 # HOST GATHERING
 GATHER_TIMEOUT = 2
 DEVICE_FILE = "device_data.json"
+
+# MDNS DISCOVERY
 
 # GENERAL SETTINGS
 INTERFACE = None

