@@ -199,7 +199,7 @@ Thank you to anyone who clones or even glances through this project, its really 
 | `-pr`| `--port_range` | Port range for scanning, e.g., `1,1000`. |
 | `-t` | `--thread_maximum`| Max threads for the port scanner. (Default: 50) |
 | `-w` | `--wait` | Port scan timeout in seconds. (Default: 3) |
-| `-tm`| `--target_mac` | **Required for ARP.** The target's MAC address. |
+| `-tm`| `--target_mac` | The target's MAC address. Required for ARP spoofing unless using the -r flag. |
 | `-rm`| `--router_mac` | **Optional for ARP.** Manually specify the router's MAC. |
 | `-dos`| `--dos_target` | **Optional for ARP.** Set ARP spoofed MAC to 00:00:00:00:00, cutting target's internet. |
 | `-r`| `--read_device_file` | **Optional for ARP.** If you've recently run the host discovery, it lists those devices as options for scanning instead of requiring manual entry. |
