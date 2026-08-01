@@ -126,7 +126,7 @@ The toolkit will try to find your router's MAC address automatically. If it fail
 **Host Discovery Integration**
 
 By using the -r flag, you can utiltize previously discovered hosts. 
-If you run -arp with only the -r flag set, it'll pull hosts discovered by `-lh` from a generated JSON file.
+If you run `-arp` with only the `-r` flag set (or additionally, with the `-i` flag), it'll pull hosts discovered by `-lh` from a generated JSON file.
 
 These JSON files are saved according to interface scanned e.g device_data-wlan0, device_data-eth0, etc. 
 
@@ -136,11 +136,11 @@ From there, you can select one of the discovered hosts from a list. For most use
 
 ```sudo tanuki.py -arp -r``` 
 
-Will return the hosts found by -lh when it was ran on your default interface, whereas 
+Will return the hosts found by `-lh` when it was ran on your default interface (without `-i`), whereas 
 
 ```sudo tanuki.py -arp -r -i wlan0``` 
 
-Will return the hosts found by -lh on that interface, if such a scan was made. If not, just run `-lh -i your_interface` to populate a device_list. 
+Will return the hosts found by -lh on that interface. If the file doesn't exist, just run `-lh` with the target interface specified. 
 
 
 **Troubleshooting: Enabling IP Forwarding**
