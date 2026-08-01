@@ -57,3 +57,22 @@ def probe_mdns(scanner_object):
         })
         
     return results
+
+
+def deep_probe(scan_results):
+    query_types = ["A", "AAAA", "TXT", "SRV"]
+    for host in scan_results: 
+        ip_layer = IP(dst=host['ip'])
+        udp_layer = UDP(dport=5353)
+        for type in query_types: 
+            request = ip_layer/udp_layer/DNS(qr=0, qd=DNSQR(qname=host['service_name'], qtype=type))
+            answer = sr1(request, timeout=2)
+            if answer != None: 
+                answer.show()
+
+
+my_scanner = mDNS_Scanner()
+
+first_probe = probe_mdns(my_scanner)
+deep_probe(first_probe)
+
