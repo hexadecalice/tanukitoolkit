@@ -14,6 +14,9 @@ volatile sig_atomic_t keep_running = 1;
 pcap_t* csession;
 
 void handle_sigint(int sig) {
+    //shut up compiler 
+    (void)sig;
+
     pcap_breakloop(csession); 
 }
 
@@ -39,12 +42,20 @@ int main(void) {
     char* wrapper_input = fgets(filter_buffer, sizeof(filter_buffer), stdin);
 
     if(wrapper_input == NULL) { 
-        printf("Reading from stdin failed, exiting...");
+        printf("[ERROR] Reading from stdin failed, exiting...");
         exit(3);
     }
-    //Cut off the "\n" from the input 
-    int newline_index = strcspn(filter_buffer, "\n"); 
-    filter_buffer[newline_index] = '\0'; 
+
+    //This is kinda hacky, but works
+    //I seperate the bpf and interface with a ~ and chop them in half here.
+    //Did it with a newline at first but forgot fgets stops at newlines and didnt wanna write out another fgets segment 
+    char* interface_name = strchr(filter_buffer, '~'); 
+    *interface_name = '\0';
+    interface_name++; 
+
+    int newline_index = strcspn(interface_name, "\n"); 
+    interface_name[newline_index] = '\0';
+
     
     char *device; 
     pcap_if_t *network_devices; 
@@ -67,10 +78,25 @@ int main(void) {
         exit(1);
     }
 
-    //copy first device name from the linked list 
-    device = strdup(network_devices->name);
-    pcap_freealldevs(network_devices);
+    //copy first interface name from the linked list if not specified
+    //if specified, look for that shit
+    pcap_if_t* head = network_devices;
+    if(interface_name != NULL) { 
 
+        while(strcmp(interface_name, network_devices->name) != 0) {
+            if(network_devices->next != NULL) {  
+                network_devices = network_devices->next;
+            }
+            else{
+                printf("Sorry, unable to locate interface. Please check your spelling and try again."); 
+                exit(2);
+            }
+
+        }
+    } 
+    device = strdup(network_devices->name);
+
+    pcap_freealldevs(head);
     //These hold the data returned by lookupnet()
     bpf_u_int32 net_ip;
     bpf_u_int32 netmask; 
@@ -88,7 +114,7 @@ int main(void) {
     }  
 
     //Compile and apply the BPF filter from standard input
-    if (pcap_compile(csession, &bpf_struct, filter_buffer, 0, netmask) != -1) {
+    if (pcap_compile(csession, &bpf_struct, filter_buffer, 0, netmask) == 0) {
         pcap_setfilter(csession, &bpf_struct);
     }
     
@@ -127,7 +153,7 @@ int main(void) {
     pcap_dump_close(config.file_handle);
     free(device);
 
-    printf("\nPackets Captured: %i\n", packet_count);
+    printf("\nPackets Captured: %i on interface %s \n", packet_count, interface_name);
 
     return 0;   
 }
