@@ -126,9 +126,11 @@ The toolkit will try to find your router's MAC address automatically. If it fail
 **Host Discovery Integration**
 
 By using the -r flag, you can utiltize previously discovered hosts. 
-If you run -arp with only the -r flag set, it'll pull hosts discovered by -lh from a JSON file (this can also be viewed directly at device_data.json). 
-These JSON files are saved according to interface scanned, device_data-wlan0, device_data-eth0, etc. 
-From there, you can select one of the discovered hosts from a list. For most use cases, this is the easiest way of running it. 
+If you run -arp with only the -r flag set, it'll pull hosts discovered by `-lh` from a generated JSON file.
+
+These JSON files are saved according to interface scanned e.g device_data-wlan0, device_data-eth0, etc. 
+
+From there, you can select one of the discovered hosts from a list. For most use cases, this is the easiest way of running the ARP module.
 
 *A quick word of warning:* Always ensure if you're trying to spoof hosts outside your default interface, you specify this with the -i flag, for example: 
 
