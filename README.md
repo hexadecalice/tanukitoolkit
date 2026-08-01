@@ -151,7 +151,7 @@ These JSON files are saved according to interface scanned e.g device_data-wlan0,
 
 From there, you can select one of the discovered hosts from a list. For most use cases, this is the easiest way of running the ARP module.
 
-> **A quick word of warning:** Always ensure if you're trying to spoof hosts outside your default interface, you specify this with the `-i` flag, for example: 
+> **A quick word of warning:** Always ensure if you're trying to spoof hosts outside your default interface, you specify this with the  `-i` flag, for example: 
 
 ```bash
 # Returns hosts found by -lh when run on your default interface (without -i)
