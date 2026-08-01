@@ -58,6 +58,10 @@ To see a full list of all available commands and what they do, just ask for help
 
     python tanuki.py -h
 
+Additionally, for all following commands you can specify an interface by which to scan using the `-i` flag:
+ 
+    python tanuki.py -someflag -i your_interface
+
 ### 1. Local Host Discovery (`-lh`)
 
 Want to see who's on your Wi-Fi? This command scans your local subnet and prints a list of all connected devices.
@@ -122,8 +126,20 @@ The toolkit will try to find your router's MAC address automatically. If it fail
 **Host Discovery Integration**
 
 By using the -r flag, you can utiltize previously discovered hosts. 
-If you run -arp bare with only the -r flag, it'll pull hosts discovered by -lh from a JSON file (this can also be viewed directly at device_data.json). 
+If you run -arp with only the -r flag set, it'll pull hosts discovered by -lh from a JSON file (this can also be viewed directly at device_data.json). 
+These JSON files are saved according to interface scanned, device_data-wlan0, device_data-eth0, etc. 
 From there, you can select one of the discovered hosts from a list. For most use cases, this is the easiest way of running it. 
+
+*A quick word of warning:* Always ensure if you're trying to spoof hosts outside your default interface, you specify this with the -i flag, for example: 
+
+```sudo tanuki.py -arp -r``` 
+
+Will return the hosts found by -lh when it was ran on your default interface, whereas 
+
+```sudo tanuki.py -arp -r -i wlan0``` 
+
+Will return the hosts found by -lh on that interface, if such a scan was made. If not, just run `-lh -i your_interface` to populate a device_list. 
+
 
 **Troubleshooting: Enabling IP Forwarding**
 
@@ -192,6 +208,7 @@ Thank you to anyone who clones or even glances through this project, its really 
 | Flag | Long Flag | Description |
 | :--- | :--- | :--- |
 | `-h` | `--help` | Shows the help message. |
+| `-i` | `--interface` | Specifies which interface to act on. |
 | `-lh`| `--local_hosts` | Prints IP/MAC addresses of local devices. |
 | `-ps`| `--port_scan` | Runs the port scanner. Requires `-ip`. |
 | `-arp`| `--arp_poison` | Starts the ARP MITM attack. Requires `-ip` and `-tm`. |
