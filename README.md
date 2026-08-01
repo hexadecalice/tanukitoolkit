@@ -162,7 +162,7 @@ If your goal is to disconnect a target from the internet entirely rather than ju
 
 When enabled, the toolkit will flood the target with unsolicited ARP replies linking the gateway's IP address with a nonsense MAC. 
 
-Additionally, it also attempts to poison the target's neighbour cache with router/neighbour advertisements as specified below.
+Additionally, it also attempts to poison the target's neighbor cache with router/neighbor advertisements as specified below.
 
 This has been implemented with...limited success. It works sometimes. But, fixes soon to come!
 
