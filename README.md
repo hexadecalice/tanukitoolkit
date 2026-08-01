@@ -160,7 +160,11 @@ If your target loses internet connection, it's because your machine is not forwa
 
 If your goal is to disconnect a target from the internet entirely rather than just sniffing their traffic, you can use the `-dos` flag. 
 
-When enabled, the toolkit will flood the target with "Blackhole" packets (using a non-existent hardware address). This effectively cuts the target off from the gateway.
+When enabled, the toolkit will flood the target with unsolicited ARP replies linking the gateway's IP address with a nonsense MAC. 
+
+Additionally, it also attempts to poison the target's neighbour cache with router/neighbour advertisements as specified below.
+
+This has been implemented with...limited success. It works sometimes. But, fixes soon to come!
 
 **Command:**
 
