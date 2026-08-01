@@ -22,13 +22,33 @@ common_services = [
 class mDNS_Scanner: 
     def __init__(self): 
         self.cache = {}
+
     def check_service(self, packet): 
         if packet.haslayer(DNS) and packet["DNS"].ancount > 0 and packet.haslayer(IP): 
-            self.cache[packet['IP'].src] = packet['DNS'].an
+            packet_ip = packet['IP'].src
+            if packet_ip not in self.cache:
+                utilities.print_info(f"Device detected at {packet_ip}")
+                self.cache[packet_ip] = []
+                answer = packet['DNS'].an 
+                while answer: 
+                    dns_record = { 
+                        "name" : getattr(answer, "rrname", "Name not present"),
+                        "record_type" : getattr(answer,"type", "Type not present"),
+                        "additional_data" : getattr(answer, "rdata", "No additional data")
+                    }
+                    if dns_record not in self.cache: 
+                        self.cache[packet_ip].append(dns_record)
+                    answer = answer.payload if isinstance(answer.payload, 'DNSR') else None 
+            
+
     def iterate_services(self, service_list): 
         for service in service_list: 
             multicast_ping = mDNS_wrapper/DNS(qr=0, qd=DNSQR(qname=service, qtype="PTR"))
             send(multicast_ping, verbose=False)
+
+    def check_deep_probe(): 
+        return 0
+
 
 mDNS_wrapper = IP(dst="224.0.0.251")/UDP(sport=5353, dport=5353)
 
@@ -46,33 +66,39 @@ def probe_mdns(scanner_object):
     sniff_thread.join()
     send_thread.join()
     
-    results = []
-    for key in scanner_object.cache:
-        record = scanner_object.cache[key]
-        results.append({
-            "ip": key,
-            "service_name": record.rrname,
-            "record_type": record.type,
-            "record_additional_data": record.rdata
-        })
+    clean_cache= [] 
+
+    for device in scanner_object.cache: 
+        print(device)
         
-    return results
+    
 
 
-def deep_probe(scan_results):
+def deep_probe(device):
     query_types = ["A", "AAAA", "TXT", "SRV"]
-    for host in scan_results: 
-        ip_layer = IP(dst=host['ip'])
-        udp_layer = UDP(dport=5353)
-        for type in query_types: 
-            request = ip_layer/udp_layer/DNS(qr=0, qd=DNSQR(qname=host['service_name'], qtype=type))
-            answer = sr1(request, timeout=2)
-            if answer != None: 
-                answer.show()
+    ip_layer = IP(dst=host['ip'])
+    udp_layer = UDP(dport=5353)
+    for type in query_types: 
+        request = ip_layer/udp_layer/DNS(qr=0, qd=DNSQR(qname=host['service_name'], qtype=type))
+        answer = sr1(request, timeout=2, verbose=False)
+        if answer != None: 
+            answer.show()
 
 
 my_scanner = mDNS_Scanner()
 
 first_probe = probe_mdns(my_scanner)
-deep_probe(first_probe)
+"""
+print('\n')
+utilities.print_info("Scan Summary:")
+for device in first_probe:
+    for record in device: 
+        print(f"IP: {record["ip"]}")
+        print(f"Service Name: {record["service_name"]}")
+        print(f"Record Type: {record["record_type"]}")
+        print(f"Additional Data: {record["record_additional_data"]}\n")
 
+
+#deep_probe(first_probe)
+
+"""
