@@ -50,9 +50,9 @@ def start_sniffer_binary():
     current_os = platform.system()
 
     if current_os == "Windows":
-        arguments = ["sniffer.exe"]
+        arguments = ["sniffer.exe", config.BPF, config.INTERFACE]
     elif current_os in ["Linux", "Darwin"]:
-        arguments = ["./sniffer"]
+        arguments = ["./sniffer", config.BPF, config.INTERFACE]
     else:
         arguments = None
 
@@ -74,13 +74,10 @@ def start_sniffer_binary():
         args=arguments,
         start_new_session=True,
         stdout=subprocess.PIPE,
-        stdin=subprocess.PIPE,
         text=True,
         cwd="modules/binaries",
     )
 
-    sniffer_binary.stdin.write(config.BPF + config.INTERFACE)
-    sniffer_binary.stdin.flush()
     utilities.print_info(
         "Packet sniffer opened successfully, the capture has begun! ^-^\nPress ctrl+c at any time to exit."
     )

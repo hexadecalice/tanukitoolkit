@@ -301,7 +301,7 @@ if args.arp_poison:
         try:
             # Pass our command line variables to arp_spoof and let it do its thing
             utilities.print_info(f"Beginning ARP Poison to host {target_host} and router at {router_ip}")
-            config.INTERFACE = args.interface + "\n"
+            config.INTERFACE = args.interface
             thread_list = arp_spoof.start_arp_poison(
                 target_host, target_mac, router_ip, my_mac, router_mac, args.dos_target
             )

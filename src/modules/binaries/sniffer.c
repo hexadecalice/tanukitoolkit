@@ -35,27 +35,15 @@ void write_packet(u_char *args, struct pcap_pkthdr *packet_header, const u_char 
     (*config_file->packet_count)++;
 }
 
-int main(void) { 
-     
-    //Reading BPF string passed from python wrapper into a buffer
-    char filter_buffer[256];
-    char* wrapper_input = fgets(filter_buffer, sizeof(filter_buffer), stdin);
-
-    if(wrapper_input == NULL) { 
-        printf("[ERROR] Reading from stdin failed, exiting...");
-        exit(3);
+int main(int argc, char *argv[]) { 
+    
+    if(argc < 3) { 
+        printf("[ERROR] Not enough arguments!");
+        exit(1);
     }
-
-    //This is kinda hacky, but works
-    //I seperate the bpf and interface with a ~ and chop them in half here.
-    //Did it with a newline at first but forgot fgets stops at newlines and didnt wanna write out another fgets segment 
-    char* interface_name = strchr(filter_buffer, '~'); 
-    *interface_name = '\0';
-    interface_name++; 
-
-    int newline_index = strcspn(interface_name, "\n"); 
-    interface_name[newline_index] = '\0';
-
+    //parsing arguments from python wrapper
+    char* bpf_string = argv[1]; 
+    char* interface_name = argv[2];
     
     char *device; 
     pcap_if_t *network_devices; 
@@ -114,7 +102,7 @@ int main(void) {
     }  
 
     //Compile and apply the BPF filter from standard input
-    if (pcap_compile(csession, &bpf_struct, filter_buffer, 0, netmask) == 0) {
+    if (pcap_compile(csession, &bpf_struct, bpf_string, 0, netmask) == 0) {
         pcap_setfilter(csession, &bpf_struct);
     }
     
