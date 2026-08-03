@@ -48,3 +48,4 @@ MDNS_TIMEOUT = 20
 INTERFACE = None
 SUBNET = None
 IP = None
+ROUTER_IP = None
