@@ -17,11 +17,6 @@ from utils import utilities
 AF_INET = netifaces.AF_INET
 
 
-"""
--------------------------------------------------------------------------------
-Argument Parsing
--------------------------------------------------------------------------------
-"""
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-ip",
@@ -299,7 +294,7 @@ if args.arp_poison:
 
     if router_mac and isinstance(router_mac, str):
         try:
-            # Pass our command line variables to arp_spoof and let it do its thing
+            #Pass our command line variables to arp_spoof and let it do its thing
             utilities.print_info(f"Beginning ARP Poison to host {target_host} and router at {router_ip}")
             config.INTERFACE = args.interface + "\n"
             thread_list = arp_spoof.start_arp_poison(
