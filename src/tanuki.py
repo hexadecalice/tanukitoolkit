@@ -17,11 +17,6 @@ from utils import utilities
 AF_INET = netifaces.AF_INET
 
 
-"""
--------------------------------------------------------------------------------
-Argument Parsing
--------------------------------------------------------------------------------
-"""
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-ip",
