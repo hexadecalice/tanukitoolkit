@@ -8,7 +8,7 @@ from utils import utilities
 from utils import config
 
 
-def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False):
+def device_scan(router_ip, mac_lookup, interface, verbose=True):
     # Uses the interface to find the ip and subnet mask if specified 
     # If not, use the hacky functions 
     if interface is None: 
@@ -37,8 +37,6 @@ def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False
         if received.psrc == router_ip:
             if verbose:
                 print("--This Device Is The Router--")
-            if arp_poison:
-                return received.hwsrc
                 
         if verbose:
             print(f"IP Address: {received.psrc}")

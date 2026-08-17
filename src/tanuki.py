@@ -224,14 +224,12 @@ ARP module handling
 -------------------------------------------------------------------------------
 """
 if args.arp_poison or args.read_device_file:
-    # Sets router IP and determines it if not found.
+    # Sets router mac and determines it if not found.
     if args.router_mac:
         router_mac = args.router_mac
     elif (not args.router_mac) and (not args.read_device_file):
         utilities.print_info("Attempting to determine router MAC...")
-        router_mac = host_gather.device_scan(
-            router_ip, mac_lookup, args.interface, verbose=False, arp_poison=True
-        )
+        router_mac = utilities.find_router_mac(router_ip)
     else: 
         router_mac = None
     target_host = None
