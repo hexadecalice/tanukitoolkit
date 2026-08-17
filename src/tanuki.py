@@ -39,7 +39,7 @@ parser.add_argument(
 parser.add_argument(
     "-tm", 
     "--target_mac", 
-    help="Specifies target Mac Adddress for ARP poisoning"
+    help="Specifies target Mac Address for ARP poisoning"
 )
 parser.add_argument(
     "-w",
@@ -101,6 +101,8 @@ parser.add_argument(
 
 
 args = parser.parse_args()
+
+
 print(utilities.welcome_message)
 print(utilities.version)
 
@@ -149,7 +151,7 @@ else:
 my_mac = gma()
 mac_lookup = MacLookup()
 conf.iface = args.interface 
-device_data_filename = f"{config.DEVICE_FILE}-{args.interface}"
+device_data_filename = f"{config.DEVICE_FILE}-{args.interface}.json"
 
 
 
@@ -221,8 +223,7 @@ if not args.dos_target:
 ARP module handling
 -------------------------------------------------------------------------------
 """
-if args.arp_poison:
-
+if args.arp_poison or args.read_device_file:
     # Sets router IP and determines it if not found.
     if args.router_mac:
         router_mac = args.router_mac

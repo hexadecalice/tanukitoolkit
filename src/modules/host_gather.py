@@ -5,6 +5,7 @@ import netifaces
 import scapy.all as scapy
 
 from utils import utilities
+from utils import config
 
 
 def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False):
@@ -28,7 +29,7 @@ def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False
     # Layer the packets into something that can be sent on the network
     request_packet = ether_envelope / arp_request
 
-    answered, unanswered = scapy.srp(request_packet, timeout=2, verbose=False, iface=interface)
+    answered, unanswered = scapy.srp(request_packet, timeout=config.GATHER_TIMEOUT, verbose=False, iface=interface)
 
     response_list = []
 

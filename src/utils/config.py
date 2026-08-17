@@ -38,8 +38,8 @@ BPF = f"not host {ip} and not port 443 and not ip6"
 
 
 # HOST GATHERING
-GATHER_TIMEOUT = 20
-DEVICE_FILE = "device_data.json"
+GATHER_TIMEOUT = 4
+DEVICE_FILE = "device_data"
 
 # MDNS DISCOVERY
 MDNS_TIMEOUT = 10
