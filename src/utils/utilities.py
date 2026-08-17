@@ -4,7 +4,7 @@ from colorama import Fore, Style, init
 
 
 import netifaces
-from scapy.all import ARP, Ether, IP, sendp, sr1
+from scapy.all import ARP, Ether, IP, sendp, srp1
 
 
 
