@@ -6,6 +6,10 @@ from datetime import datetime
 import netifaces
 from getmac import get_mac_address as gma
 from mac_vendor_lookup import MacLookup
+
+#This shuts up the "no cryptography" warning.
+import logging
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.config import conf
 
 from modules import arp_spoof
