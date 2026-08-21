@@ -1,7 +1,7 @@
 import ipaddress
 import socket
 from colorama import Fore, Style, init
-
+import sys 
 
 import netifaces
 from scapy.all import ARP, Ether, IP, sendp, srp1
@@ -67,15 +67,28 @@ def format_ports(port_input):
 
 init(autoreset=True)
 
+def is_tty():
+    if sys.stdout.isatty: 
+        return True 
+    else: 
+        return False 
+
+#DRY? nah, round here we like it WET
 def print_info(message):
-    print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} {message}")
-
+    if is_tty():
+        print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} {message}")
+    else: 
+        print(message)
 def print_warning(message):
-    print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {message}")
-
+    if is_tty():
+        print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {message}")
+    else:
+        print(message)
 def print_error(message):
-    print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} {message}")
-
+    if is_tty():
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} {message}")
+    else: 
+        print(message)
 
 def format_range(host_ip, host_subnet):
     # Convert the determined IP/Subnet into a useable interface object that represents the network range
