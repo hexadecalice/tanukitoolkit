@@ -152,7 +152,7 @@ else:
             utilities.print_warning("For simple scans, this won't affect usage, but ARP spoofing requires the gateway address.")
             utilities.print_warning("You can manually set the gateway by changing the ROUTER_IP variable in src/utilities/config.py")
 
-my_mac = gma()
+my_mac = gma(interface=args.interface)
 mac_lookup = MacLookup()
 conf.iface = args.interface 
 device_data_filename = f"{config.DEVICE_FILE}-{args.interface}.json"
@@ -236,6 +236,7 @@ if args.arp_poison or args.read_device_file:
         router_mac = utilities.find_router_mac(router_ip)
     else: 
         router_mac = None
+    
     target_host = None
     target_mac = None
 
