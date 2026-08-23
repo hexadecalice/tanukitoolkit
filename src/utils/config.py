@@ -38,7 +38,7 @@ BPF = f"not host {ip} and not port 443 and not ip6"
 
 
 # HOST GATHERING
-GATHER_TIMEOUT = 4
+GATHER_TIMEOUT = 7
 DEVICE_FILE = "device_data"
 
 # MDNS DISCOVERY

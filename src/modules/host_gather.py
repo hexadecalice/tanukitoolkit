@@ -20,7 +20,7 @@ def device_scan(router_ip, mac_lookup, interface, verbose=True):
 
     cidr_prefix = utilities.format_range(local_host, local_subnetmask)
     utilities.print_info(f"Scanning on network segment: {cidr_prefix}...")
-    utilities.print_info("This may take a while")
+    utilities.print_info("This may take a while\n")
 
     # Create an ARP request with a broadcast ethernet envelope
     arp_request = scapy.ARP(pdst=str(cidr_prefix))
