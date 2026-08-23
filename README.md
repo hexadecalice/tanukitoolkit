@@ -208,10 +208,10 @@ If you'd like to change the program's functionality past what's permitted in fla
 
 The ARP spoofing module uses a packet sniffing engine written in C and compiled into both a native Linux binary and a Windows executable. 
 This was done mainly to improve performance compared to the original design which used Scapy's native sniff() function. 
-Tanuki's ARP module uses subprocess' popen() to call the exectuable, then pipes the BPF via STDIN. 
+Tanuki's ARP module uses subprocess' popen() to call the exectuable, then passes the BPF string and interface as arguments. 
 
 It handles teardown via a threading.Event(), which when set triggers a SIGINT sent to the binary.
-The binary handles the signal by closing its sniffing loop and exiting cleanly.
+The binary handles the signal by closing its sniffing loop and exiting.
 The actual packet sniffing logic is written using libpcap, the source code is included in the binaries folder. 
 
 ---

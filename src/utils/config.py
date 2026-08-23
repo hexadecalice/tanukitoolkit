@@ -34,18 +34,20 @@ HEAL_JITTER = 0.5
 # PACKET SNIFFER
 CAPTURE_DIRECTORY = "/capture/"
 ip = utilities.get_ip()
-BPF = f"not host {ip} and not port 443 and not ip6\n"
+BPF = f"not host {ip} and not port 443 and not ip6"
 
 
 # HOST GATHERING
-GATHER_TIMEOUT = 2
-DEVICE_FILE = "device_data.json"
+GATHER_TIMEOUT = 7
+DEVICE_FILE = "device_data"
 
 # MDNS DISCOVERY
 MDNS_TIMEOUT = 8
 
 # GENERAL SETTINGS
-INTERFACE = None
 SUBNET = None
 IP = None
+
 ROUTER_IP = None
+ROUTER_IP = None
+INTERFACE = None

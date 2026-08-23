@@ -5,9 +5,10 @@ import netifaces
 import scapy.all as scapy
 
 from utils import utilities
+from utils import config
 
 
-def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False):
+def device_scan(router_ip, mac_lookup, interface, verbose=True):
     # Uses the interface to find the ip and subnet mask if specified 
     # If not, use the hacky functions 
     if interface is None: 
@@ -19,7 +20,7 @@ def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False
 
     cidr_prefix = utilities.format_range(local_host, local_subnetmask)
     utilities.print_info(f"Scanning on network segment: {cidr_prefix}...")
-    utilities.print_info("This may take a while")
+    utilities.print_info("This may take a while\n")
 
     # Create an ARP request with a broadcast ethernet envelope
     arp_request = scapy.ARP(pdst=str(cidr_prefix))
@@ -28,7 +29,7 @@ def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False
     # Layer the packets into something that can be sent on the network
     request_packet = ether_envelope / arp_request
 
-    answered, unanswered = scapy.srp(request_packet, timeout=2, verbose=False, iface=interface)
+    answered, unanswered = scapy.srp(request_packet, timeout=config.GATHER_TIMEOUT, verbose=False, iface=interface)
 
     response_list = []
 
@@ -36,8 +37,6 @@ def device_scan(router_ip, mac_lookup, interface, verbose=True, arp_poison=False
         if received.psrc == router_ip:
             if verbose:
                 print("--This Device Is The Router--")
-            if arp_poison:
-                return received.hwsrc
                 
         if verbose:
             print(f"IP Address: {received.psrc}")

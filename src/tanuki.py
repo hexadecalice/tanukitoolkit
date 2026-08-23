@@ -6,6 +6,10 @@ from datetime import datetime
 import netifaces
 from getmac import get_mac_address as gma
 from mac_vendor_lookup import MacLookup
+
+#This shuts up the "no cryptography" warning.
+import logging
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.config import conf
 
 from modules import arp_spoof
@@ -39,7 +43,7 @@ parser.add_argument(
 parser.add_argument(
     "-tm", 
     "--target_mac", 
-    help="Specifies target Mac Adddress for ARP poisoning"
+    help="Specifies target Mac Address for ARP poisoning"
 )
 parser.add_argument(
     "-w",
@@ -101,6 +105,8 @@ parser.add_argument(
 
 
 args = parser.parse_args()
+
+
 print(utilities.welcome_message)
 print(utilities.version)
 
@@ -146,10 +152,10 @@ else:
             utilities.print_warning("For simple scans, this won't affect usage, but ARP spoofing requires the gateway address.")
             utilities.print_warning("You can manually set the gateway by changing the ROUTER_IP variable in src/utilities/config.py")
 
-my_mac = gma()
+my_mac = gma(interface=args.interface)
 mac_lookup = MacLookup()
 conf.iface = args.interface 
-device_data_filename = f"{config.DEVICE_FILE}-{args.interface}"
+device_data_filename = f"{config.DEVICE_FILE}-{args.interface}.json"
 
 
 
@@ -221,18 +227,16 @@ if not args.dos_target:
 ARP module handling
 -------------------------------------------------------------------------------
 """
-if args.arp_poison:
-
-    # Sets router IP and determines it if not found.
+if args.arp_poison or args.read_device_file:
+    # Sets router mac and determines it if not found.
     if args.router_mac:
         router_mac = args.router_mac
     elif (not args.router_mac) and (not args.read_device_file):
         utilities.print_info("Attempting to determine router MAC...")
-        router_mac = host_gather.device_scan(
-            router_ip, mac_lookup, args.interface, verbose=False, arp_poison=True
-        )
+        router_mac = utilities.find_router_mac(router_ip)
     else: 
         router_mac = None
+    
     target_host = None
     target_mac = None
 
@@ -296,7 +300,7 @@ if args.arp_poison:
         try:
             #Pass our command line variables to arp_spoof and let it do its thing
             utilities.print_info(f"Beginning ARP Poison to host {target_host} and router at {router_ip}")
-            config.INTERFACE = args.interface + "\n"
+            config.INTERFACE = args.interface
             thread_list = arp_spoof.start_arp_poison(
                 target_host, target_mac, router_ip, my_mac, router_mac, args.dos_target
             )

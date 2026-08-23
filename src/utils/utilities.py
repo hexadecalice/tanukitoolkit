@@ -1,15 +1,124 @@
-import socket
 import ipaddress
+import socket
+from colorama import Fore, Style, init
+import sys 
+
 import netifaces
-from scapy.all import sr1, Ether, ARP, IP, sendp
-welcome_message = "Tanuki Toolkit - ALPHA\nUse python tanuki.py -h for a list of commands."
+from scapy.all import ARP, Ether, IP, sendp, srp1
 
 
-def safe_send(packet, iface=None):
+
+welcome_message = """  
+  _____              _   _   _____         _ _   _ _   
+ |_   _|_ _ _ _ _  _| |_(_) |_   _|__  ___| | |_(_) |_ 
+   | |/ _` | ' \\ || | / / |   | |/ _ \\/ _ \\ | / / |  _|
+   |_|\\__,_|_||_\\_,_|_\\_\\_|   |_|\\___/\\___/_|_\\_\\_|\\__|
+                                                       
+"""
+
+version = """
+        _        __                                         
+ __ __ / |      /  \\                                        
+ \\ V / | |  _  | () |                                       
+  \\_/  |_| (_)_ \\__/               _             _ _        
+ | |__ _  _  | |_  _____ ____ _ __| |___ __ __ _| (_)__ ___ 
+ | '_ \\ || | | ' \\/ -_) \\ / _` / _` / -_) _/ _` | | / _/ -_)
+ |_.__/\\_, | |_||_\\___/_\\_\\__,_\\__,_\\___\\__\\__,_|_|_\\__\\___|
+       |__/                                                 """
+
+
+# -----------------------------------------------------------------------------
+# Data formatting and CLI functions
+# -----------------------------------------------------------------------------
+def format_ports(port_input):
+    format_error = "[ERROR] Please ensure your port is formatted single (ex. 8) or ranged (ex. 10,20)."
+    invalid_port = "[ERROR] Invalid port numbers. Please try again."
+    
+    if ',' in port_input:
+        ports = port_input.split(',')
+        if len(ports) != 2:
+            print(format_error)
+            return None
+        else:
+            try:
+                ports = list(map(int, ports))
+            except ValueError:
+                print(format_error)
+                return None
+                
+            low, high = min(ports[0], ports[1]), max(ports[0], ports[1])
+            if low < 0 or high > 65535:
+                print(invalid_port)
+                return None
+                
+            port_list = range(low, high + 1)
+            return port_list
+    else:
+        try:
+            single_port = int(port_input)
+            if not (0 <= single_port <= 65535):
+                print(invalid_port)
+                return None
+        except ValueError:
+            print(invalid_port)
+            return None
+            
+        return [single_port]
+
+init(autoreset=True)
+
+def is_tty():
+    if sys.stdout.isatty: 
+        return True 
+    else: 
+        return False 
+
+#DRY? nah, round here we like it WET
+def print_info(message):
+    if is_tty():
+        print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} {message}")
+    else: 
+        print(message)
+def print_warning(message):
+    if is_tty():
+        print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {message}")
+    else:
+        print(message)
+def print_error(message):
+    if is_tty():
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} {message}")
+    else: 
+        print(message)
+
+def format_range(host_ip, host_subnet):
+    # Convert the determined IP/Subnet into a useable interface object that represents the network range
+    network_interface = ipaddress.IPv4Interface(f"{host_ip}/{host_subnet}")
+    return network_interface.network
+
+
+# -----------------------------------------------------------------------------
+# Network configuration functions
+# -----------------------------------------------------------------------------
+def get_interface_info(interface):
     try:
-        sendp(packet, iface=iface, verbose=0)
-    except Exception as e:
-        print(f"[!] Send Error: {e}")
+        addresses = netifaces.ifaddresses(interface)
+        
+        if netifaces.AF_INET in addresses:
+            link = addresses[netifaces.AF_INET][0]
+            ip_addr = link.get('addr')
+            netmask = link.get('netmask')
+            
+            # Fallback in case netifaces drops the netmask for manually added IPs
+            if netmask is None:
+                netmask = '255.255.255.0'
+                
+            return [ip_addr, netmask]
+    except ValueError:
+        pass
+        
+    print(f"Error: '{interface}' not found or has no IPv4 address assigned. Cannot scan.")
+    exit(1)
+
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -22,7 +131,9 @@ def get_ip():
         IP = '127.0.0.1'
     finally:
         s.close()
+        
     return IP
+
 
 def get_subnetmask(active_ip):
     for interface in netifaces.interfaces():
@@ -30,55 +141,40 @@ def get_subnetmask(active_ip):
         if netifaces.AF_INET in addresses:
             for link in addresses[netifaces.AF_INET]:
                 if link.get('addr') == active_ip:
-                #According to someone on stack exchange, sometimes netifaces will exclude the 'netmask' key 
-                #But still have an 'addr' key, this might be useless, I've never run across an error personally
-                #but better safe than sorry ig
+                    # According to someone on stack exchange, sometimes netifaces will exclude the 'netmask' key 
+                    # But still have an 'addr' key, this might be useless, I've never run across an error personally
+                    # but better safe than sorry ig
                     if 'netmask' in link:
                         return link['netmask']
     return None
 
+def find_router_mac(router_ip):
+ 
+    ether_layer = Ether(dst="ff:ff:ff:ff:ff:ff")
+    arp_request = ARP(op=1, pdst=router_ip)
+    router_request = ether_layer/arp_request
+
+    answer = srp1(router_request, timeout=10, verbose=False)
+    if answer is not None: 
+        return answer['ARP'].hwsrc 
+    else: 
+        print("Routers IP undeterminable. Try entering it manually.")
+        exit(2)
 
 
-#Convert the determined IP/Subnet into a useable interface object that represents the network range
-def format_range(host_ip, host_subnet):
-    network_interface = ipaddress.IPv4Interface(f"{host_ip}/{host_subnet}")
-    return network_interface
 
-
+# -----------------------------------------------------------------------------
+# Sending/Receiving Packets
+# -----------------------------------------------------------------------------
 def find_router(router_ip):
     ether_layer = Ether(dst="ff:ff:ff:ff:ff:ff")
-    arp_request = ether_layer/ARP(op=1, pdst=router_ip)
+    arp_request = ether_layer / ARP(op=1, pdst=router_ip)
     response = sr1(arp_request)
     return response.hwsrc
 
-def format_ports(port_input):
 
-    format_error = "Please ensure your port is formatted single (ex. 8) or ranged (ex. 10,20)."
-    invalid_port = "Invalid port numbers. Please try again."
-    if ',' in port_input:
-        ports = port_input.split(',')
-        if len(ports) != 2:
-            print(format_error)
-            return None
-        else:
-            try:
-                ports = list(map(int, ports))
-            except ValueError:
-                print(format_error)
-                return None
-            low, high = min(ports[0], ports[1]), max(ports[0], ports[1])
-            if low < 0 or high > 65535:
-                print(invalid_port)
-                return None
-            port_list = range(low, high+1)
-            return port_list
-    else:
-        try:
-            single_port = int(port_input)
-            if not (0 <= single_port <= 65535):
-                print(invalid_port)
-                return None
-        except ValueError:
-            print(invalid_port)
-            return None
-        return [single_port]
+def safe_send(packet, iface=None):
+    try:
+        sendp(packet, iface=iface, verbose=0)
+    except Exception as e:
+        print(f"[!] Send Error: {e}")
