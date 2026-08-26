@@ -155,7 +155,7 @@ else:
 my_mac = gma(interface=args.interface)
 mac_lookup = MacLookup()
 conf.iface = args.interface 
-device_data_filename = f"{config.DEVICE_FILE}-{args.interface}.json"
+device_data_filename = f"device_data/{config.DEVICE_FILE}-{args.interface}.json"
 
 
 
