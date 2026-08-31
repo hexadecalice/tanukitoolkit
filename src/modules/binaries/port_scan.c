@@ -79,13 +79,21 @@ void* scan_port(void* scan_info) {
 	libnet_t* handle;
 	if( (handle = libnet_init(LIBNET_RAW4, interface, errbuff)) == NULL) { 
 		printf("[ERROR] Libnet failed to initialize, failed with error %s", errbuff); 
+		exit(1);
 	} 
 
 	while(*packet_count < port_max) { 
 		//lock the mutex to check the q 
 		pthread_mutex_lock(&scan_details->lock);
-		while(queue_empty(buffer_info)) { 
+
+		while(queue_empty(buffer_info)  && *packet_count != port_max) { 
 			pthread_cond_wait(&scan_details->not_empty, &scan_details->lock);
+		}
+
+		//this kills the remaining threads that woke up after the scan finishes.
+		if(*packet_count == port_max ) { 
+			pthread_mutex_unlock(&scan_details->lock);
+			break;
 		}
 		//ugly as shit copy the current port to scan off the ring buffer 
 		port_info current_port = buffer_info->buffer[buffer_info->read_index];
@@ -114,6 +122,7 @@ void* scan_port(void* scan_info) {
 
 		uint32_t target_address = inet_addr(current_port.target_host);
 
+		//parameters are size, higher layer protocol, target, and libnet handle
 		if(libnet_autobuild_ipv4(LIBNET_IPV4_H+LIBNET_TCP_H, IPPROTO_TCP,target_address, handle) == -1) { 
 			printf("[ERROR] Failed to build IPv4 layer with error %s", errbuff); 
 			exit(1);
@@ -125,10 +134,6 @@ void* scan_port(void* scan_info) {
 		}
 
 		libnet_clear_packet(handle);
-
-
-
-
 
 		
 	}
@@ -156,15 +161,34 @@ int main(int argc, char *argv[]) {
 	int default_thread = atoi(argv[6]); 
 	char* target_ip = argv[7];
 
+	pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INTIALIZER; 
+	pthread_cond_t queue_full_c = PTHREAD_COND_INTIALIZER; 
+	pthread_cond_t queue_empty_c = PTHREAD_COND_INTIALIZER; 
+
+	atomic_int p_count = 0; 
 	
 
 	//allocate room for our buffer on the heap
 	port_info* port_list = (port_info *)malloc((end_port - start_port + 1)* sizeof(port_info));
 
 
-	buffer_info buffer_struct;
+	buffer_info buffer_struct { 
+		.read_index = 0,
+		.write_index = 0,
+		.buffer = &port_list
 
-	config config_struct; 
+	};
+
+	config config_struct = { 
+		.port_max = end_port,
+		.interface = interface,
+		.buffer_struct = &buffer_struct,
+		.lock = mutex_lock, 
+		.not_empty = queue_empty_c, 
+		.not_full = queue_full_c, 
+		.packet_count = &p_count
+
+	};
 
 
 
