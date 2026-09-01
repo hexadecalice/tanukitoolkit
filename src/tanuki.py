@@ -298,7 +298,7 @@ if args.arp_poison or args.read_device_file:
 
     if router_mac and isinstance(router_mac, str):
         try:
-            # Pass our command line variables to arp_spoof and let it do its thing
+            #Pass our command line variables to arp_spoof and let it do its thing
             utilities.print_info(f"Beginning ARP Poison to host {target_host} and router at {router_ip}")
             config.INTERFACE = args.interface
             thread_list = arp_spoof.start_arp_poison(
