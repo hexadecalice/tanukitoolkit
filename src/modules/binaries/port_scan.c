@@ -13,8 +13,15 @@
 #include <netinet/tcp.h>
 #include <string.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <errno.h>
 
-#define SCAN_TIMEOUT 10
+#define SCAN_TIMEOUT 1
+#define WINDOW_SIZE 512
+#define CREDIT_WAIT_MS 50
+#define RECLAIM_BATCH 256
+#define BACKOFF_MIN_US 10000
+#define BACKOFF_MAX_US 200000
 
 pcap_t *global_pcap_handle = NULL;
 
@@ -36,6 +43,11 @@ typedef struct buffer_info {
     port_info* buffer;
 } buffer_info; 
 
+typedef struct flow_ctl {
+    sem_t credits;
+    pthread_mutex_t reclaim_lock;
+} flow_ctl;
+
 typedef struct config { 
     int port_max; 
     char* interface; 
@@ -44,13 +56,22 @@ typedef struct config {
     pthread_cond_t not_empty; 
     pthread_cond_t not_full; 
     atomic_int* packet_count; 
+    flow_ctl* flow;
 } config;
+
+struct tcp_port_state { 
+    uint16_t port; 
+    char status; 
+};
 
 typedef struct sniffer_context { 
     pcap_t* handle; 
     char* dev_name; 
     int port_max; 
     int* port_count;
+    int* index_count;
+    struct tcp_port_state* port_list; 
+    flow_ctl* flow;
 } sniffer_context; 
 
 bool queue_empty(buffer_info* buffer) { 
@@ -60,6 +81,49 @@ bool queue_empty(buffer_info* buffer) {
 bool queue_full(buffer_info* buffer) {
     //checks if read index is one ahead of write, if so the queue is full
     return (((buffer->write_index + 1) % buffer->b_size) == buffer->read_index);
+}
+
+
+static int acquire_credit(flow_ctl* f) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    ts.tv_nsec += CREDIT_WAIT_MS * 1000000L;
+    if (ts.tv_nsec >= 1000000000L) {
+        ts.tv_sec++;
+        ts.tv_nsec -= 1000000000L;
+    }
+
+    while (sem_timedwait(&f->credits, &ts) == -1) {
+        if (errno == EINTR) {
+            continue;
+        }
+        return -1;
+    }
+    return 0;
+}
+
+
+//this is called if our credits drain to 0, 50ms goes by and nothing happens
+static void reclaim_credits(flow_ctl* f) {
+    if (pthread_mutex_trylock(&f->reclaim_lock) != 0) {
+        return;
+    }
+    int v;
+    sem_getvalue(&f->credits, &v);
+    if (v == 0) {
+        for (int i = 0; i < RECLAIM_BATCH; i++) {
+            sem_post(&f->credits);
+        }
+    }
+    pthread_mutex_unlock(&f->reclaim_lock);
+}
+
+static void return_credit(flow_ctl* f) {
+    int v;
+    sem_getvalue(&f->credits, &v);
+    if (v < WINDOW_SIZE) {
+        sem_post(&f->credits);
+    }
 }
 
 void* scan_port(void* scan_info) {
@@ -73,6 +137,7 @@ void* scan_port(void* scan_info) {
     char errbuff[LIBNET_ERRBUF_SIZE];
     atomic_int* packet_count = scan_details->packet_count; 
     buffer_info* buf_info = scan_details->buffer_struct; 
+    useconds_t backoff = BACKOFF_MIN_US;
 
     libnet_t* handle;
     if( (handle = libnet_init(LIBNET_RAW4, interface, errbuff)) == NULL) { 
@@ -107,10 +172,20 @@ void* scan_port(void* scan_info) {
         pthread_cond_signal(&scan_details->not_full);
         pthread_mutex_unlock(&scan_details->lock); 
 
+        while (acquire_credit(scan_details->flow) == -1) {
+            usleep(backoff);
+            if (backoff < BACKOFF_MAX_US) {
+                backoff *= 2;
+            }
+            //refill the credits if the windows still at 0 and we havent received replies
+            //the logic for the second check is in this function, idk if i should make it explicit here 
+            reclaim_credits(scan_details->flow);
+        }
+        backoff = BACKOFF_MIN_US;
+
         //Generate a random emphhehemererelalarall port
         int random_src_port = (rand_r(&random_seed) % (65535 - 49152 + 1)) + 49152;
         int random_seq = (rand_r(&random_seed) % (18000 - 1 + 1)) + 1;
-
 
         //dude i am in hell with these function signatures 
         if (libnet_build_tcp(
@@ -128,7 +203,7 @@ void* scan_port(void* scan_info) {
         handle,                /* libnet context thing */
         0                      /* ptag (0 to build a new one) */
         ) == -1) {
-            printf("[ERROR] Failed to build TCP layer with error %s\n", errbuff);
+            printf("[ERROR] Failed to build TCP layer with error %s\n", libnet_geterror(handle));
             exit(1);
         }
 
@@ -136,14 +211,16 @@ void* scan_port(void* scan_info) {
 
         //parameters are size, higher layer protocol, target, and libnet handle
         if(libnet_autobuild_ipv4(LIBNET_IPV4_H+LIBNET_TCP_H, IPPROTO_TCP, target_address, handle) == -1) { 
-            printf("[ERROR] Failed to build IPv4 layer with error %s\n", errbuff); 
+            printf("[ERROR] Failed to build IPv4 layer with error %s\n", libnet_geterror(handle)); 
             exit(1);
         } 
 
         if(libnet_write(handle) == -1) { 
-            printf("Sending SYN packet failed with error %s\n", errbuff);
+            printf("Sending SYN packet failed with error %s\n", libnet_geterror(handle));
             exit(1);
         }
+
+        alarm(SCAN_TIMEOUT);
 
         libnet_clear_packet(handle);
     }
@@ -161,21 +238,37 @@ void capture_packet(u_char *args, const struct pcap_pkthdr *packet_header, const
 
     sniffer_context *context = (sniffer_context*) args; 
 
+    if(*(context->index_count) >= context->port_max) { 
+        pcap_breakloop(context->handle);
+        return;
+    }
+
     //pull the size of the IP header out of the ip header 
     struct ip *ip_header = (struct ip*)(packet + ETHER_HDR_LEN);
     int ip_hdr_len = ip_header->ip_hl * 4; 
 
     //keep walking up that shit to grab the port and flags 
     struct tcphdr *tcp_header = (struct tcphdr*)(packet + ETHER_HDR_LEN + ip_hdr_len);
-    uint16_t source_port = ntohs(tcp_header->th_sport);
 
+    //this kept giving such weird results because i forgot to convert it 
+    uint16_t source_port = ntohs(tcp_header->th_sport);
+    struct tcp_port_state captured_port = { 
+        .port = source_port,
+        .status = 'U' // Defaulting to unknown
+    }; 
+    
     if (tcp_header->th_flags == (TH_SYN | TH_ACK)) {
-        printf("OPEN PORT: %u\n", source_port);
+        captured_port.status = 'O';
     } else if (tcp_header->th_flags & TH_RST) {
-        printf("CLOSED PORT: %u\n", source_port);
+        captured_port.status = 'C';
     }
 
+    context->port_list[*(context->index_count)] = captured_port; 
+
+    return_credit(context->flow);
+
     (*(context->port_count))++;
+    (*(context->index_count))++;
 
     if(*(context->port_count) >= context->port_max) { 
         pcap_breakloop(context->handle);
@@ -208,22 +301,28 @@ int main(int argc, char *argv[]) {
     if(thread_max == -1) { 
         thread_max = thread_default;
     }
-
+    
+    int port_range = end_port - start_port + 1;
+    int ring_buffer_size = port_range + 1;
+    
     //sniffer stuff 
     char pcap_errbuff[PCAP_ERRBUF_SIZE];
     struct bpf_program bpf_struct;
     char* device;
     char bpf_string[256]; 
 
-    //format bpf string
+    //format bpf string and isolate only the packets we need
     snprintf(bpf_string, sizeof(bpf_string), "src host %s and dst host %s and (tcp[13] == 18 or tcp[13] == 20 or tcp[13] == 4)", target_ip, local_ip);
 
     pcap_if_t *interface_list; 
+    pcap_if_t *alldevs;
 
-    if(pcap_findalldevs(&interface_list, pcap_errbuff) == -1) { 
+    if(pcap_findalldevs(&alldevs, pcap_errbuff) == -1) { 
         printf("Sorry, locating network interfaces failed with error %s\n", pcap_errbuff);
         exit(1);
     }
+
+    interface_list = alldevs;
 
     //walk up the ~linked list~ to grab the interface name 
     while(strcmp(interface_list->name, interface) != 0) { 
@@ -232,14 +331,16 @@ int main(int argc, char *argv[]) {
         }
         else { 
             printf("Sorry, couldn't locate specified interface to sniff on.\n");
+            pcap_freealldevs(alldevs);
             exit(1);
         }
     }
 
     device = strdup(interface_list->name); 
+    
     //this might be a memory leak? i dont know if freealldevs frees the whole thing or just the current value onwards in the list
     //TODO: if it is save the head and free that 
-    pcap_freealldevs(interface_list); 
+    pcap_freealldevs(alldevs); 
 
     bpf_u_int32 net_ip;
     bpf_u_int32 netmask; 
@@ -248,7 +349,7 @@ int main(int argc, char *argv[]) {
         netmask = PCAP_NETMASK_UNKNOWN; 
     }
     
-    pcap_t *csession = pcap_open_live(device, BUFSIZ, 1, -1, pcap_errbuff); 
+    pcap_t *csession = pcap_open_live(device, BUFSIZ, 1, 1000, pcap_errbuff); 
     if(csession == NULL) { 
         printf("Session creation failed with error %s\n", pcap_errbuff);
         exit(4);
@@ -260,13 +361,28 @@ int main(int argc, char *argv[]) {
     
     //set the initial clock so it doesn't hang if zero packets are ever received
     alarm(SCAN_TIMEOUT);
-
+    
+    struct tcp_port_state* port_array = (struct tcp_port_state*)malloc(port_range * sizeof(struct tcp_port_state));
+    if(port_array == NULL) { 
+        printf("Sorry, malloc failed while creating buffer to hold port status!"); 
+        exit(1);
+    }
+    
     int ports_scanned = 0;
+    int port_index = 0; 
+
+    flow_ctl flow;
+    sem_init(&flow.credits, 0, WINDOW_SIZE);
+    pthread_mutex_init(&flow.reclaim_lock, NULL);
+
     sniffer_context sniff_con = { 
         .handle = csession, 
         .dev_name = interface, 
-        .port_max = end_port - start_port + 1,
-        .port_count = &ports_scanned
+        .port_max = port_range,
+        .port_count = &ports_scanned,
+        .index_count = &port_index,
+        .port_list = port_array,
+        .flow = &flow
     };
 
     //compile and apply the BPF filter from the formatted string
@@ -284,11 +400,11 @@ int main(int argc, char *argv[]) {
     if (thread_id_list == NULL) {
         exit(1);
     }
-
+    
     atomic_int p_count = 0; 
     
     //allocate room for our buffer on the heap
-    port_info* port_list = (port_info *)malloc((end_port - start_port + 1)* sizeof(port_info));
+    port_info* port_list = (port_info *)malloc(ring_buffer_size * sizeof(port_info));
     if (port_list == NULL) {
         exit(1);
     }
@@ -296,18 +412,19 @@ int main(int argc, char *argv[]) {
     buffer_info buffer_struct = { 
         .read_index = 0,
         .write_index = 0,
-        .b_size = end_port - start_port + 1,
+        .b_size = ring_buffer_size,
         .buffer = port_list
     };
 
     config config_struct = { 
-        .port_max = end_port - start_port + 1,
+        .port_max = port_range,
         .interface = interface,
         .buffer_struct = &buffer_struct,
         .lock = PTHREAD_MUTEX_INITIALIZER, 
         .not_empty = PTHREAD_COND_INITIALIZER, 
         .not_full = PTHREAD_COND_INITIALIZER, 
-        .packet_count = &p_count
+        .packet_count = &p_count,
+        .flow = &flow
     };
 
     for(int i = 0; i < thread_max; i++) { 
@@ -345,8 +462,23 @@ int main(int argc, char *argv[]) {
     }
 
     pthread_join(sniffer_thread_id, NULL);
+    
+    int close_counter = 0; 
+    for(int i = 0; i < ports_scanned; i++) {
+        if (port_array[i].status == 'O') {
+            printf("OPEN PORT: %u\n", port_array[i].port);
+        }
+        else if(port_array[i].status == 'C') { 
+            close_counter++; 
+        }
+    }
+    printf("Excluding %d closed ports.\n", close_counter);
 
+    sem_destroy(&flow.credits);
+    pthread_mutex_destroy(&flow.reclaim_lock);
+    free(port_array);
     free(port_list);
     free(thread_id_list);
+    free(device);
     return 0;
 }
