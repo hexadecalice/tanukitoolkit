@@ -47,7 +47,7 @@ def format_ports(port_input):
                 return None
                 
             low, high = min(ports[0], ports[1]), max(ports[0], ports[1])
-            if low < 0 or high > 65535:
+            if low < 1 or high > 65535:
                 print(invalid_port)
                 return None
                 
@@ -56,7 +56,7 @@ def format_ports(port_input):
     else:
         try:
             single_port = int(port_input)
-            if not (0 <= single_port <= 65535):
+            if not (1 <= single_port <= 65535):
                 print(invalid_port)
                 return None
         except ValueError:
@@ -68,10 +68,7 @@ def format_ports(port_input):
 init(autoreset=True)
 
 def is_tty():
-    if sys.stdout.isatty: 
-        return True 
-    else: 
-        return False 
+    return sys.stdout.isatty()
 
 #DRY? nah, round here we like it WET
 def print_info(message):
