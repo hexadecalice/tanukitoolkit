@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 from datetime import datetime
+from pathlib import Path
 
 import netifaces
 from getmac import get_mac_address as gma
@@ -19,6 +20,9 @@ from utils import config
 from utils import utilities
 
 AF_INET = netifaces.AF_INET
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEVICE_DATA_DIR = PROJECT_ROOT / "device_data"
+DEVICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 parser = argparse.ArgumentParser()
@@ -41,8 +45,8 @@ parser.add_argument(
     help="Sets the maximum number of threads for port scanning. Default is 50.",
 )
 parser.add_argument(
-    "-tm", 
-    "--target_mac", 
+    "-tm",
+    "--target_mac",
     help="Specifies target Mac Address for ARP poisoning"
 )
 parser.add_argument(
@@ -118,33 +122,33 @@ Determining gateway/interfaces
 Code for finding the router IP; precedence order:
 config.py -> selected interface gateway -> default gateway
 """
-gateways = netifaces.gateways() 
+gateways = netifaces.gateways()
 
-if args.interface is None: 
+if args.interface is None:
     try:
-        # Checks the routing table first, then the config folder. 
-        if config.ROUTER_IP is None: 
+        # Checks the routing table first, then the config folder.
+        if config.ROUTER_IP is None:
             gateway_tuple = gateways["default"][AF_INET]
             router_ip, args.interface = gateway_tuple[0], gateway_tuple[1]
-        else: 
+        else:
             router_ip = config.ROUTER_IP
             if config.INTERFACE is None:
                 utilities.print_error("Inteface not set for custom router IP.")
                 utilities.print_error("Please set the interface by changing the INTERFACE variable found in config.py")
                 exit(1)
             args.interface = config.INTERFACE
-    except KeyError: 
+    except KeyError:
         utilities.print_error("Default Gateway couldn't be determined, try specifying an interface.")
         utilities.print_error("You can also manually set your gateway's IP by modifying the ROUTER_IP variable in src/utilities/config.py")
         exit(1)
-else: 
+else:
     router_ip = None
-    ipv4_gateways = gateways.get(netifaces.AF_INET, []) 
-    for gateway_tuple in ipv4_gateways: 
-        if args.interface == gateway_tuple[1]: 
+    ipv4_gateways = gateways.get(netifaces.AF_INET, [])
+    for gateway_tuple in ipv4_gateways:
+        if args.interface == gateway_tuple[1]:
             router_ip = gateway_tuple[0]
-            
-    if router_ip is None: 
+
+    if router_ip is None:
         if config.ROUTER_IP is not None:
             router_ip = config.ROUTER_IP
         else:
@@ -154,8 +158,8 @@ else:
 
 my_mac = gma(interface=args.interface)
 mac_lookup = MacLookup()
-conf.iface = args.interface 
-device_data_filename = f"device_data/{config.DEVICE_FILE}-{args.interface}.json"
+conf.iface = args.interface
+device_data_filename = DEVICE_DATA_DIR / f"{config.DEVICE_FILE}-{args.interface}.json"
 
 
 
@@ -165,16 +169,25 @@ Local host discovery
 -------------------------------------------------------------------------------
 """
 if args.local_hosts:
-    local_host = host_gather.device_scan(router_ip, mac_lookup, args.interface, verbose=False)
-    
+    local_host = host_gather.device_scan(
+        router_ip,
+        mac_lookup,
+        args.interface,
+        verbose=False,
+    )
+
     for host in local_host:
         print(f"IP Address: {host.get('ip')}")
         print(f"Mac Address: {host.get('mac')}")
         print(f"Manufacturer: {host.get('manufacturer')}")
         print(f"Host Name (Usually undetermined): {host.get('host name')}\n")
-        
-    time = str(datetime.now())
-    json_contents = {"interface": args.interface, "time": time, "devices": local_host}
+
+    scan_time = str(datetime.now())
+    json_contents = {
+        "interface": args.interface,
+        "time": scan_time,
+        "devices": local_host,
+    }
 
     with open(device_data_filename, "w") as file:
         json.dump(json_contents, file)
@@ -184,7 +197,7 @@ if args.local_hosts:
 
 """
 -------------------------------------------------------------------------------
-Handling threadcount 
+Handling threadcount
 -------------------------------------------------------------------------------
 """
 if args.target_ip is None and not args.read_device_file:
@@ -212,10 +225,22 @@ Port scanning module handling
 if args.port_scan:
     if args.port_range:
         port_range = utilities.format_ports(args.port_range)
+
+        if port_range is None:
+            utilities.print_warning(
+                "Invalid port range supplied. Defaulting to common ports."
+            )
     else:
         port_range = None
-        
-    port_scan.main(target_host, port_range, max_threads, wait_time, args.ipv6_indicator, args.interface)
+
+    port_scan.main(
+        target_host,
+        port_range,
+        max_threads,
+        wait_time,
+        args.ipv6_indicator,
+        args.interface,
+    )
     exit(0)
 
 if not args.dos_target:
@@ -234,9 +259,9 @@ if args.arp_poison or args.read_device_file:
     elif (not args.router_mac) and (not args.read_device_file):
         utilities.print_info("Attempting to determine router MAC...")
         router_mac = utilities.find_router_mac(router_ip)
-    else: 
+    else:
         router_mac = None
-    
+
     target_host = None
     target_mac = None
 
@@ -245,85 +270,152 @@ if args.arp_poison or args.read_device_file:
             with open(device_data_filename, "r") as file:
                 saved_data = json.load(file)
         except FileNotFoundError:
-            utilities.print_error("Data file not found! Try running tanuki.py -lh first to populate the file.")
+            utilities.print_error(
+                "Data file not found! Try running tanuki.py -lh first to populate the file."
+            )
             exit(1)
-            
+
         scan_time = saved_data.get("time")
         active_interface = saved_data.get("interface")
         device_list = saved_data.get("devices")
-        
-        utilities.print_info(f"Scan data loaded successfully.")
+
+        utilities.print_info("Scan data loaded successfully.")
         utilities.print_info(f"Time of scan recorded as {scan_time}")
         utilities.print_info(f"Scan recorded on {active_interface}")
-        utilities.print_info("For best results, ensure your -lh scan was run recently.")
+        utilities.print_info(
+            "For best results, ensure your -lh scan was run recently."
+        )
 
         # I hate format strings so goddamn much. A pain to write and to look at.
         for index, host in enumerate(device_list, start=1):
             if host.get('ip') == router_ip:
                 router_mac = host.get('mac')
-            print(f"[{index}] IP: {host.get('ip'):<15} | MAC: {host.get('mac')} | Host: {host.get('host name')}")
-        
+
+            print(
+                f"[{index}] "
+                f"IP: {host.get('ip'):<15} | "
+                f"MAC: {host.get('mac')} | "
+                f"Host: {host.get('host name')}"
+            )
+
         if router_mac is None or router_ip is None:
-            utilities.print_error("Couldn't determine gateway details from device data file.")
-            utilities.print_error("Try specifying the router's mac using the -rm flag, and/or setting the ROUTER_IP variable in config.py")
+            utilities.print_error(
+                "Couldn't determine gateway details from device data file."
+            )
+            utilities.print_error(
+                "Try specifying the router's mac using the -rm flag, "
+                "and/or setting the ROUTER_IP variable in config.py"
+            )
             exit(1)
 
-        user_input = input("Please enter the device you would like to scan:\n> ")
+        user_input = input(
+            "Please enter the device you would like to scan:\n> "
+        )
 
         # Conditional makes sure its in range and is a number
-        if user_input.isdigit() and 0 <= int(user_input) <= len(device_list):
+        if (
+            user_input.isdigit()
+            and 1 <= int(user_input) <= len(device_list)
+        ):
             index = int(user_input) - 1
             target_host = device_list[index].get("ip")
             target_mac = device_list[index].get("mac")
         else:
-            utilities.print_error("Sorry! Invalid input, please try again.")
+            utilities.print_error(
+                "Sorry! Invalid input, please try again."
+            )
             exit(1)
+
     else:
         if args.target_mac:
             target_mac = args.target_mac
         else:
-            utilities.print_error("Please enter a target mac using -tm for ARP spoofing.")
-            utilities.print_error("Alternatively, use -lh to gather hosts and run the ARP command with the -r flag.")
-            utilities.print_error("For a full list of commands, use python tanuki.py -h")
+            utilities.print_error(
+                "Please enter a target mac using -tm for ARP spoofing."
+            )
+            utilities.print_error(
+                "Alternatively, use -lh to gather hosts and run the ARP command with the -r flag."
+            )
+            utilities.print_error(
+                "For a full list of commands, use python tanuki.py -h"
+            )
             exit(1)
-            
+
         if args.target_ip:
             target_host = args.target_ip
         else:
-            utilities.print_error("Please enter a target ip with -ip for ARP Spoofing")
-            utilities.print_error("Alternatively, use -lh to gather hosts and run the ARP command with the -r flag.")
-            utilities.print_error("For a full list of commands, use python tanuki.py -h")
+            utilities.print_error(
+                "Please enter a target ip with -ip for ARP Spoofing"
+            )
+            utilities.print_error(
+                "Alternatively, use -lh to gather hosts and run the ARP command with the -r flag."
+            )
+            utilities.print_error(
+                "For a full list of commands, use python tanuki.py -h"
+            )
             exit(1)
-
 
     if router_mac and isinstance(router_mac, str):
         try:
             # Pass our command line variables to arp_spoof and let it do its thing
-            utilities.print_info(f"Beginning ARP Poison to host {target_host} and router at {router_ip}")
-            config.INTERFACE = args.interface
-            thread_list = arp_spoof.start_arp_poison(
-                target_host, target_mac, router_ip, my_mac, router_mac, args.dos_target
+            utilities.print_info(
+                f"Beginning ARP Poison to host "
+                f"{target_host} and router at {router_ip}"
             )
+
+            config.INTERFACE = args.interface
+
+            thread_list = arp_spoof.start_arp_poison(
+                target_host,
+                target_mac,
+                router_ip,
+                my_mac,
+                router_mac,
+                args.dos_target,
+            )
+
             while 1:
                 time.sleep(2)
+
         except (TypeError, ValueError) as e:
-            utilities.print_error("Something went wrong, make sure you're formatting your arguments correctly.")
+            utilities.print_error(
+                "Something went wrong, make sure you're formatting "
+                "your arguments correctly."
+            )
             print(e)
+
         except KeyboardInterrupt:
             utilities.print_info("Keyboard Interrupt detected.")
-            utilities.print_info("Closing threads and ending ARP Poison...")
+            utilities.print_info(
+                "Closing threads and ending ARP Poison..."
+            )
+
             arp_spoof.stop_event.set()
 
-            for thread in thread_list: 
+            for thread in thread_list:
                 thread.join()
-                
-            utilities.print_info("Restoring target's ARP tables...")
-            try: 
-                arp_spoof.restore_arp_tables(target_host, router_ip, router_mac, target_mac)
-            except KeyboardInterrupt: 
-                utilities.print_warning("Forcefully closing Tanuki, target's ARP tables may remain poisoned!")
+
+            utilities.print_info(
+                "Restoring target's ARP tables..."
+            )
+
+            try:
+                arp_spoof.restore_arp_tables(
+                    target_host,
+                    router_ip,
+                    router_mac,
+                    target_mac,
+                )
+            except KeyboardInterrupt:
+                utilities.print_warning(
+                    "Forcefully closing Tanuki, target's ARP tables "
+                    "may remain poisoned!"
+                )
                 exit(1)
+
             utilities.print_info("Exiting...")
 
     else:
-        utilities.print_error("Unable to determine router's mac, try entering it manually.")
+        utilities.print_error(
+            "Unable to determine router's mac, try entering it manually."
+        )
