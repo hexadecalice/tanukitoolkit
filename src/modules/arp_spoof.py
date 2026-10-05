@@ -113,7 +113,9 @@ def start_arp_poison(target_ip, target_mac, router_ip, attacker_mac, router_mac,
     if dos:
         utilities.print_info("Starting IPv6 poisoning...")
         ipv6_thread = threading.Thread(
-            target=ipv6_poison.poison_service, args=(target_mac,), daemon=True
+            target=ipv6_poison.poison_service,
+            args=(target_mac, stop_event),
+            daemon=True,
         )
         threads.append(ipv6_thread)
 
