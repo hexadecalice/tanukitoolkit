@@ -14,7 +14,12 @@ from utils import utilities
 from modules import ipv6_poison
 
 stop_event = threading.Event()
-BINARY_DIR = Path(__file__).resolve().parent / "binaries"
+MODULE_DIR = Path(__file__).resolve().parent
+BINARY_DIR = MODULE_DIR / "binaries"
+PROJECT_ROOT = MODULE_DIR.parents[1]
+CAPTURE_DIR = PROJECT_ROOT / "captures"
+
+CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def arp_poison_loop(target_ip, router_ip, dst_mac, spoof_mac):
@@ -90,7 +95,7 @@ def start_sniffer_binary():
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            cwd=BINARY_DIR,
+            cwd=CAPTURE_DIR,
         )
 
     except OSError as exc:
