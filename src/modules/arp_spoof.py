@@ -23,7 +23,7 @@ CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def arp_poison_loop(target_ip, router_ip, dst_mac, spoof_mac):
-    # Dedicated loop for ARP poisoning.
+    #Dedicated loop for ARP poisoning.
     packet = Ether(dst=dst_mac) / ARP(
         op=2,
         pdst=target_ip,
@@ -127,24 +127,14 @@ def start_sniffer_binary():
     if out:
         print(out)
 
-    if sniffer_binary.returncode not in (
-        0,
-        -signal.SIGINT,
-    ):
+    if sniffer_binary.returncode not in (0, -signal.SIGINT,):
         utilities.print_error(
             f"Packet sniffer exited with code "
             f"{sniffer_binary.returncode}."
         )
 
 
-def start_arp_poison(
-    target_ip,
-    target_mac,
-    router_ip,
-    attacker_mac,
-    router_mac,
-    dos
-):
+def start_arp_poison(target_ip, target_mac, router_ip,attacker_mac,router_mac, dos):
     stop_event.clear()
     threads = []
 
@@ -157,12 +147,7 @@ def start_arp_poison(
 
     target_thread = threading.Thread(
         target=arp_poison_loop,
-        args=(
-            target_ip,
-            router_ip,
-            target_mac,
-            address
-        ),
+        args=(target_ip, router_ip, target_mac,address),
         daemon=True,
     )
 
@@ -171,12 +156,7 @@ def start_arp_poison(
     # Router Poisoning
     router_thread = threading.Thread(
         target=arp_poison_loop,
-        args=(
-            router_ip,
-            target_ip,
-            router_mac,
-            attacker_mac
-        ),
+        args=(router_ip, target_ip,router_mac,attacker_mac),
         daemon=True,
     )
 
@@ -189,10 +169,7 @@ def start_arp_poison(
 
         ipv6_thread = threading.Thread(
             target=ipv6_poison.poison_service,
-            args=(
-                target_mac,
-                stop_event
-            ),
+            args=(target_mac,stop_event),
             daemon=True,
         )
 

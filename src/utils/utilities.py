@@ -117,19 +117,25 @@ def get_interface_info(interface):
     exit(1)
 
 
-def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(0)
-    try:
-        # Get IP by parsing info from UDP socket thats created at useless port
-        s.connect(('10.254.254.254', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-        
-    return IP
+
+def get_ip(interface=None):
+    #Get IP from specified interface if provided
+    if interface is not None:
+        addresses = netifaces.ifaddresses(interface)
+        ipv4 = addresses.get(netifaces.AF_INET, [])
+
+        if not ipv4:
+            raise ValueError(f"No IPv4 address found for {interface}")
+
+        return ipv4[0]["addr"]
+
+    #Otherwise, get IP using default routing
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            s.connect(("10.254.254.254", 1))
+            return s.getsockname()[0]
+        except OSError:
+            raise RuntimeError("Could not determine default IPv4 address")
 
 
 def get_subnetmask(active_ip):

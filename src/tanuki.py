@@ -3,6 +3,9 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
+import socket
+import platform
+import subprocess
 
 import netifaces
 from getmac import get_mac_address as gma
@@ -24,6 +27,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEVICE_DATA_DIR = PROJECT_ROOT / "device_data"
 DEVICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+DEFAULT_THREAD_MAX = 50
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -209,7 +213,7 @@ else:
 if args.thread_maximum and args.thread_maximum > 0:
     max_threads = args.thread_maximum
 else:
-    max_threads = 50
+    max_threads = DEFAULT_THREAD_MAX
 
 if args.wait:
     wait_time = args.wait
@@ -225,22 +229,55 @@ Port scanning module handling
 if args.port_scan:
     if args.port_range:
         port_range = utilities.format_ports(args.port_range)
-
         if port_range is None:
             utilities.print_warning(
                 "Invalid port range supplied. Defaulting to common ports."
             )
+        #Checks if the entered target has a number, kind of a weak way to check if its an IP but eh
+        #Assigns host ip and hostname depending on whether they entered a website or not
+        if(args.target_ip[0].isdigit()):
+            scan_ip = args.target_ip
+            try: 
+                scan_host = socket.gethostbyaddr(args.target_ip)
+            except socket.gaierror:
+                utilities.print_warning("Couldn't resolve a host name from target, if it's not a website this is expected.")
+        else: 
+            try: 
+                scan_ip = socket.gethostbyname(args.target_ip)
+                scan_host = args.target_ip
+            except socket.gaierror:
+                utilities.print_error("Couldn't resolve website name, check your spelling and try again!")
+                exit(1)
+
+        start_port = port_range[0]
+        end_port = port_range[-1]
+        local_ip = utilities.get_ip(args.interface)
+
+
     else:
         port_range = None
 
-    port_scan.main(
-        target_host,
-        port_range,
-        max_threads,
-        wait_time,
-        args.ipv6_indicator,
-        args.interface,
-    )
+    current_os = platform.system()
+    if current_os == "Windows":
+        port_binary = "binaries/port_scan.exe"
+    elif current_os == "Linux":
+        port_binary = "binaries/port_scan"
+    else: 
+        print("Tanuki currently only supports Windows and Linux systems, sorry!")
+        exit(1)
+    try: 
+        subprocess.run( 
+            [scan_host,
+            start_port,
+            end_port,
+            args.interface,
+            max_threads,
+            DEFAULT_THREAD_MAX, 
+            scan_ip, 
+            local_ip
+            ])
+    except 
+
     exit(0)
 
 if not args.dos_target:
