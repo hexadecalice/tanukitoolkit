@@ -15,11 +15,11 @@ A lightweight toolkit for network analysis and security testing.
 
 ## What is this?
 
-The Tanuki Toolkit is a small, Python-based collection of tools for network reconnaissance and testing. It's built to be a simple, command-line-driven framework for common security tasks.
+The Tanuki Toolkit is a small collection of tools for network reconnaissance and testing, built around a Python command-line launcher and native C components. It's intended to be a simple, command-line-driven framework for common security tasks.
 
 ### Features
 * **Local Host Discovery:** See devices on your local network.
-* **Port Scanner:** Check for open ports on a target host.
+* **Port Scanner:** Perform IPv4 TCP SYN scans using a multithreaded C scanner, with configurable producer-side pacing.
 * **ARP Poisoning:** Launch a Man-in-the-Middle test in an authorized lab and capture redirected traffic.
 
 ---
@@ -49,20 +49,26 @@ On Windows, activate the environment with:
 pip install -r requirements.txt
 ```
 
-### 2. Native Packet-Capture Requirements
+### 2. Native Packet-Capture and Port-Scanner Requirements
 
 Tanuki's ARP module uses a native packet-sniffing utility written in C with **libpcap**. The C source is included in `src/modules/binaries/`.
 
-Precompiled packet-capture binaries are currently provided for:
+The port scanner also uses a native C executable. It uses **libnet** to construct and send raw IPv4/TCP SYN packets, **libpcap** to listen for TCP responses, and POSIX threads and synchronization primitives to coordinate the workers. Building the C port scanner on Linux requires a compiler plus the libnet and libpcap development libraries.
+
+Precompiled binaries for the **ARP packet-capture helper** are currently provided for:
 
 * **Linux x86-64**
 * **Windows x86-64**
 
-**Linux:** The libpcap runtime must be installed. Building the sniffer from source also requires the libpcap development headers and a C compiler.
+These are separate from the **C TCP SYN port scanner**, which has been developed and tested on Linux. A working Windows port-scanner executable is **not currently provided or verified**.
 
-**Windows:** Install **Npcap**. Scapy and the native capture utility depend on packet-capture support provided by Npcap.
+**Linux:** The libpcap runtime must be installed. Building the ARP sniffer from source requires libpcap development headers and a C compiler. Building the C port scanner additionally requires libnet headers/libraries and POSIX threading support.
 
-**macOS and ARM:** A compatible precompiled sniffer binary is not currently distributed. The included C source may be compiled for the target platform, but packet-capture support on these systems should currently be considered experimental.
+**Windows:** Install **Npcap** for packet-capture support used by Scapy and the native ARP capture helper. Installing Npcap alone does **not** make the C port scanner Windows-compatible. Its Python launcher contains a Windows executable path, but the new scanner does not yet build for Windows.
+
+**Windows port-scanner build status (experimental):** An initial MinGW-w64 cross-compilation attempt successfully built a Windows-targeted **static libnet library** using the Npcap SDK. Compiling Tanuki's `port_scan.c` then stopped at conflicting BPF structure definitions between Npcap headers (`Packet32.h` and `pcap/bpf.h`) and unavailable POSIX headers such as `arpa/inet.h`. These are unresolved source-portability issues; no working `port_scan.exe` resulted from that attempt. Other POSIX interfaces in the scanner may also need Windows-specific handling. Windows scanner support remains a future task, not a supported feature.
+
+**macOS and ARM:** A compatible precompiled ARP sniffer binary is not currently distributed. The included C sources may require platform-specific changes and compilation; native support on these systems should currently be considered experimental.
 
 The bundled Linux executable is an x86-64 ELF binary. It will not run natively on ARM systems, and Linux binaries are not native macOS executables even when both machines use the same CPU architecture.
 
@@ -73,7 +79,7 @@ The bundled Linux executable is an x86-64 ELF binary. It will not run natively o
 * **On Windows:** Run your terminal (CMD/PowerShell) as **Administrator**.
 * **On Linux/macOS:** Use `sudo` where raw packet access is required.
 
-Commands in this README assume they are being run from the repository root.
+Unless otherwise noted, commands in this README assume they are being run from the repository root. **The current C port-scanner launcher is an exception:** its binary path is relative to the working directory, so the port-scan examples below are run from `src/`.
 
 ```bash
 sudo python src/tanuki.py [your-commands]
@@ -131,34 +137,63 @@ Host Name (Usually undetermined): Jerrys-iPhone
 
 ### 2. Port Scanning (`-ps`)
 
-This module lets you check a target for open ports. You **must** provide a target IP or hostname (`-ip`).
+The port scanner uses a multithreaded **C TCP SYN scanner**, launched by `tanuki.py` with `subprocess.run()`. Python handles target resolution, command-line arguments, and wait-time validation; the C executable sends IPv4 SYN packets and captures TCP responses using libpcap. A SYN/ACK indicates an open port, while a RST indicates a closed port. Unanswered probes aren't automatically classified as open.
 
-**Example 1: Scan a target for common ports**
+You **must** supply a target IP or hostname with `-ip`. Raw-packet operations generally require elevated privileges.
 
-This uses the built-in list of common ports.
+**Example 1: Scan the default port range**
+
+With no `-pr` flag, the current C scanner scans ports **1–4000**, rather than a predefined list of popular ports. The default worker-thread count is **50**, and the default producer delay is **5 milliseconds**.
+
+Because the current Python launcher locates the port-scan executable relative to the working directory, first change into `src/` (from the repository root):
 
 ```bash
-# Remember to use sudo/Admin where raw packet access requires it.
-sudo python src/tanuki.py -ps -ip 192.168.1.1
+cd src
+sudo python tanuki.py -ps -ip 192.168.1.1
 ```
 
 **Example 2: Scan a specific port range**
 
-Use `-pr` to define a range, formatted as `start,end`.
+Use `-pr` to define an inclusive range, formatted as `start,end`.
 
 ```bash
-sudo python src/tanuki.py -ps -ip 192.168.1.10 -pr 20,80
+sudo python tanuki.py -ps -ip 192.168.1.10 -pr 20,80
 ```
 
-If an invalid value is supplied to `-pr`, Tanuki prints a warning and falls back to its built-in common-port list rather than silently changing behavior.
+If an invalid value is supplied to `-pr`, Tanuki prints a warning and falls back to its default **1–4000** range.
 
-**Example 3: Scan faster (more threads) and with a shorter timeout**
+**Example 3: Configure worker threads and scan pacing**
 
-Use `-t` to set the thread count and `-w` to set the timeout in seconds.
+Use `-t` to select the maximum number of scanning threads and `-w` to specify an **integer delay in milliseconds** between jobs being added to the shared queue.
 
 ```bash
-sudo python src/tanuki.py -ps -ip 192.168.1.10 -pr 1,1000 -t 100 -w 0.5
+sudo python tanuki.py -ps -ip 192.168.1.10 -pr 1,1000 -t 25 -w 50
 ```
+
+In this example, the producer waits approximately 50 ms between adding port-scan jobs. With a 5 ms delay (the default), the producer introduces roughly 200 jobs per second when it is not blocked. This is **producer-side pacing**, not a strict global packet-per-second cap: queued jobs can still be processed concurrently by multiple workers.
+
+**Example 4: Disable the added pacing delay (`-F`)**
+
+Use `-F` / `--FAST` to remove the intentional producer delay. `-w 0` has the same pacing effect, and `-F` takes precedence if both flags are supplied.
+
+```bash
+sudo python tanuki.py -ps -ip 192.168.1.10 -pr 20,80 -F
+```
+
+Using fast mode can produce larger bursts of SYN packets and may cause dropped packets or misleading scan results on rate-limited devices. Use it thoughtfully on systems you're authorized to scan.
+
+**How the port scanner works**
+
+The Python launcher invokes the C binary with the target details, scan range, interface, thread configuration, local IPv4 address, and the wait time. On the C side:
+
+1. One producer places port-scan jobs in a shared ring buffer; an optional `nanosleep()` delay paces production.
+2. Worker threads dequeue jobs and use libnet to send TCP SYN probes.
+3. A libpcap sniffer applies a BPF filter to capture the target's SYN/ACK and RST responses, then records observed open or closed ports.
+4. A credit-window/backoff mechanism separately limits the number of probes in flight when responses are slow or absent.
+
+The C scanner currently uses a fixed three-second idle alarm; **`-w` does not change this timeout**. Output lists detected open ports and summarizes counted closed responses.
+
+**Current integration note:** The Python launcher presently looks for `modules/binaries/port_scan` on Linux (or `modules/binaries/port_scan.exe` on Windows) **relative to the process's working directory**, which is why the examples above use `cd src`. Ensure the compiled executable exists at the expected path. The Python launcher also currently references `DEFAULT_THREAD_MAX` without the `config.` prefix in its subprocess arguments; that source issue must be corrected before launching the C scanner this way. Windows compatibility is not yet implemented.
 
 ### 3. ARP Poisoning / MITM Attack (`-arp`)
 
@@ -239,6 +274,8 @@ A lot of the main functions for generating your IP, subnet, etc. are found in `u
 Things like error messages, jitter, timeouts, etc. are kept inside `config.py`.
 If you'd like to change the program's functionality past what's permitted in flags, those are the places to look.
 
+The port-scanning module is now implemented in C rather than the earlier Python scanning module. The Python launcher handles validation and passes scanner parameters to the C binary via `subprocess.run()`. The native scanner uses libnet for SYN packet construction, libpcap for response capture, and a producer/worker queue for concurrency; its configurable `nanosleep()` delay applies at the producer. The existing credit-window/backoff mechanism is separate from this delay.
+
 The ARP spoofing module uses a packet-sniffing engine written in C and currently includes compiled Linux x86-64 and Windows x86-64 binaries.
 This was done mainly to improve performance compared to the original design, which used Scapy's native `sniff()` function.
 Tanuki's ARP module uses `subprocess.Popen()` to call the executable, then passes the BPF string and interface as arguments.
@@ -278,9 +315,10 @@ Thank you to anyone who clones or even glances through this project. It's really
 | `-ps` | `--port_scan` | Runs the port scanner. Requires `-ip`. |
 | `-arp` | `--arp_poison` | Starts the ARP MITM test. Requires `-ip` and `-tm` unless using `-r`. |
 | `-ip` | `--target-ip` | Specifies the target's IP or hostname. |
-| `-pr` | `--port_range` | Port range for scanning, e.g. `1,1000`. Invalid input warns and falls back to common ports. |
+| `-pr` | `--port_range` | Inclusive port range for scanning, e.g. `1,1000`. Invalid input warns and falls back to ports 1–4000. |
 | `-t` | `--thread_maximum` | Max threads for the port scanner. (Default: 50) |
-| `-w` | `--wait` | Port scan timeout in seconds. (Default: 3) |
+| `-w` | `--wait` | Integer delay in milliseconds between queued scan jobs. (Default: 5 ms; `0` disables pacing.) |
+| `-F` | `--FAST` | Run the port scanner without the producer-side delay; overrides `-w`. |
 | `-tm` | `--target_mac` | The target's MAC address. Required for ARP spoofing unless using the `-r` flag. |
 | `-rm` | `--router_mac` | **Optional for ARP.** Manually specify the router's MAC. |
 | `-dos` | `--dos_target` | **Optional / experimental.** Changes poisoning behavior to disrupt connectivity in an authorized lab. |

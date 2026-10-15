@@ -27,7 +27,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEVICE_DATA_DIR = PROJECT_ROOT / "device_data"
 DEVICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-DEFAULT_THREAD_MAX = 50
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -56,9 +55,15 @@ parser.add_argument(
 parser.add_argument(
     "-w",
     "--wait",
-    type=float,
-    help="Specifies the time a thread should wait for a port to respond in seconds. Default is 3.",
+    type=int,
+    help="An integer specifying the time between packets being added to the send queue in ms.\nUse this for rate limiting.",
 )
+parser.add_argument(
+    "-F",
+    "--FAST",
+    help="Removess rate limiting on the port scanner, this will cause odd results on some target.",
+    action="store_true"
+    )
 parser.add_argument(
     "-lh",
     "--local_hosts",
@@ -74,7 +79,7 @@ parser.add_argument(
 parser.add_argument(
     "-arp",
     "--arp_poison",
-    help="Starts an ARP MitM attack against a given target, please include IP and Mac of target",
+    help="Starts an ARP MitM attack against a given target, please include IP and Mac of target, or use the -r flag.",
     action="store_true",
 )
 parser.add_argument(
@@ -110,6 +115,7 @@ parser.add_argument(
     default=None,
     help="Selects which interface to scan/spoof/etc"
 )
+
 
 
 args = parser.parse_args()
@@ -205,6 +211,7 @@ Handling threadcount
 -------------------------------------------------------------------------------
 """
 if args.target_ip is None and not args.read_device_file:
+    utilities.print_error("No target specified. Use -ip to specify a target or -lh to discover hosts.")
     parser.print_help()
     exit(1)
 else:
@@ -213,17 +220,23 @@ else:
 if args.thread_maximum and args.thread_maximum > 0:
     max_threads = args.thread_maximum
 else:
-    max_threads = DEFAULT_THREAD_MAX
+    max_threads = config.DEFAULT_THREAD_MAX
 
-if args.wait:
-    wait_time = args.wait
+if args.wait is not None and not args.FAST:
+    if args.wait >= 0:
+        wait_time = args.wait
+    else: 
+        utilities.print_error("Wait time specified is invalid, please check your -w flag and try again.")
+        exit(1)
+elif args.FAST: 
+    wait_time = 0
 else:
-    wait_time = 3
+    wait_time = config.DEFAULT_PS_DELAY_MS
 
 
 """
 -------------------------------------------------------------------------------
-Port scanning module handling
+Port scanning module handlingD
 -------------------------------------------------------------------------------
 """
 if args.port_scan:
@@ -233,50 +246,62 @@ if args.port_scan:
             utilities.print_warning(
                 "Invalid port range supplied. Defaulting to common ports."
             )
-        #Checks if the entered target has a number, kind of a weak way to check if its an IP but eh
-        #Assigns host ip and hostname depending on whether they entered a website or not
-        if(args.target_ip[0].isdigit()):
-            scan_ip = args.target_ip
-            try: 
-                scan_host = socket.gethostbyaddr(args.target_ip)
-            except socket.gaierror:
-                utilities.print_warning("Couldn't resolve a host name from target, if it's not a website this is expected.")
-        else: 
-            try: 
-                scan_ip = socket.gethostbyname(args.target_ip)
-                scan_host = args.target_ip
-            except socket.gaierror:
-                utilities.print_error("Couldn't resolve website name, check your spelling and try again!")
-                exit(1)
-
-        start_port = port_range[0]
-        end_port = port_range[-1]
-        local_ip = utilities.get_ip(args.interface)
-
 
     else:
         port_range = None
 
+        #Checks if the entered target has a number, kind of a weak way to check if its an IP but eh
+        #Assigns host ip and hostname depending on whether they entered a website or not
+    if(args.target_ip[0].isdigit()):
+        scan_ip = args.target_ip
+        try: 
+            scan_host = socket.gethostbyaddr(args.target_ip)[0]
+        except socket.herror:
+            utilities.print_warning("Couldn't resolve a host name from target, if it's not a website this is expected.")
+            scan_host = "Undetermined"
+    else: 
+        try: 
+            scan_ip = socket.gethostbyname(args.target_ip)
+            scan_host = args.target_ip
+        except socket.gaierror:
+            utilities.print_error("Couldn't resolve website name, check your spelling and try again!")
+            exit(1)
+
+    
+
+    
+    if port_range is None: 
+        start_port = 1
+        end_port = config.DEFAULT_PORT_MAX
+    else: 
+        start_port = port_range[0]
+        end_port = port_range[-1]
+    local_ip = utilities.get_ip(args.interface)
+
     current_os = platform.system()
     if current_os == "Windows":
-        port_binary = "binaries/port_scan.exe"
+        port_binary = Path(__file__).resolve().parent / "modules" / "binaries" / "port_scan.exe"
     elif current_os == "Linux":
-        port_binary = "binaries/port_scan"
+        port_binary = Path(__file__).resolve().parent / "modules" / "binaries" / "port_scan"
     else: 
         print("Tanuki currently only supports Windows and Linux systems, sorry!")
         exit(1)
     try: 
-        subprocess.run( 
-            [scan_host,
-            start_port,
-            end_port,
+        subprocess.run(
+            [port_binary, 
+            scan_host,
+            str(start_port),
+            str(end_port),
             args.interface,
-            max_threads,
-            DEFAULT_THREAD_MAX, 
+            str(max_threads),
+            str(config.DEFAULT_THREAD_MAX), 
             scan_ip, 
-            local_ip
-            ])
-    except 
+            local_ip,
+            str(wait_time)
+            ], check=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"Couldn't start port sniffing binary, failed with error {exc}")         
+
 
     exit(0)
 

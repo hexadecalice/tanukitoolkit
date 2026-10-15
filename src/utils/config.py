@@ -4,24 +4,9 @@ from utils import utilities
 DEFAULT_THREADS = 50
 PORT_TIMEOUT = 5
 SEMAPHORE_LIMIT = 20
-COMMON_PORTS = {
-    20: "FTP/Data",
-    21: "FTP/Control",
-    22: "SSH",
-    23: "Telnet",
-    25: "SMTP",
-    53: "DNS",
-    67: "DHCP/Server",
-    68: "DHCP/Client",
-    80: "HTTP",
-    110: "POP3",
-    123: "NTP",
-    143: "IMAP",
-    443: "HTTPS",
-    445: "SMB",
-    3306: "MySQL",
-    3389: "RDP",
-}
+DEFAULT_PORT_MAX = 4000
+DEFAULT_PS_DELAY_MS = 5
+DEFAULT_THREAD_MAX = 50
 
 # ARP_SPOOFING
 ARP_ATTACK_DELAY = 0.1
@@ -47,5 +32,5 @@ MDNS_TIMEOUT = 10
 # GENERAL SETTINGS
 SUBNET = None
 IP = None
-ROUTER_IP = None
-INTERFACE = None
+ROUTER_IP = "10.9.8.1"
+INTERFACE = "wlo1"
